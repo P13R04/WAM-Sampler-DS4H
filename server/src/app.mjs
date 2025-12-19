@@ -60,9 +60,13 @@ const __dirname = path.dirname(__filename);
 export const DATA_DIR = path.resolve(__dirname, "../data");
 export const PRESETS_DIR = path.join(DATA_DIR, "presets");
 export const SAMPLES_DIR = path.join(DATA_DIR, "samples");
+const PROJECT_ROOT = path.resolve(__dirname, "../..");
 
 // Servir les samples en statique
 app.use("/samples", express.static(SAMPLES_DIR));
+
+// Servir les fichiers du projet (src/, host/, @webaudiomodules/, etc.)
+app.use(express.static(PROJECT_ROOT));
 
 // Créer les répertoires au démarrage
 await fs.mkdir(PRESETS_DIR, { recursive: true }).catch(() => {});

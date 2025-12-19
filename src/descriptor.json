@@ -1,13 +1,14 @@
 {
-  "name": "DS4H Sampler Clean",
+  "name": "wam-sampler",
   "vendor": "DS4H",
   "version": "1.0.0",
-  "apiVersion": "2.0.0",
-  "id": "ds4h-sampler-wam",
-  "description": "Sampler WAM professionnel 16 pads - version nettoyée et compacte",
+  "sdkVersion": "2.0.0",
   "thumbnail": "",
-  "keywords": ["sampler", "wam", "web audio", "pads"],
+  "keywords": [
+    "sampler",
+    "instrument",
+    "midi"
+  ],
   "isInstrument": true,
-  "website": "https://github.com/P13R04/WAM-Sampler",
-  "author": "Pierre Constantin, Baptiste Giacchero"
+  "website": ""
 }
