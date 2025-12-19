@@ -42,11 +42,21 @@
     const audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
     async function main() {
-      // Ensure WAM env is initialized in the AudioWorklet global for standalone
       try {
-        await audioContext.audioWorklet.addModule('./sdk/initializeWamEnv.js');
+        // Option 1: Use SDK initializeWamHost if available
+        const { initializeWamHost } = await import('../@webaudiomodules/sdk/index.js');
+        if (initializeWamHost && typeof initializeWamHost === 'function') {
+          await initializeWamHost(audioContext);
+          console.log('✓ WAM host initialized via SDK');
+        }
       } catch (e) {
-        console.warn('Could not load local initializeWamEnv.js, standalone may fail without a host', e);
+        // Option 2: Fallback to local stub
+        try {
+          await audioContext.audioWorklet.addModule('./sdk/initializeWamEnv.js');
+          console.log('✓ WAM env initialized via local stub');
+        } catch (err) {
+          console.warn('Could not initialize WAM env, plugin may fail', err);
+        }
       }
 
       // Créer une instance du plugin (mode standalone)
