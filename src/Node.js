@@ -12,7 +12,7 @@
  * @author Pierre Constantin, Baptiste Giacchero
  */
 
-import { CompositeAudioNode } from '../sdk/CompositeAudioNode.js';
+import { CompositeAudioNode } from '../host/vendor/sdk-parammgr/index.js';
 
 /**
  * Inverse un AudioBuffer (lecture reverse)

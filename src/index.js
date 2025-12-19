@@ -11,7 +11,7 @@
  * @author Pierre Constantin, Baptiste Giacchero
  */
 
-// ParamMgrFactory is dynamically imported at runtime with a fallback to the local shim
+import { ParamMgrFactory } from '../host/vendor/sdk-parammgr/index.js';
 import SamplerNode from './Node.js';
 import { createElement } from './gui/index.js';
 
@@ -114,15 +114,6 @@ export default class SamplerPlugin {
     const optionsIn = { internalParamsConfig: internalParams, paramsMapping };
     let paramMgrNode;
     try {
-      let ParamMgrFactory;
-      try {
-        const mod = await import('../host/vendor/sdk-parammgr/index.js');
-        ParamMgrFactory = mod.ParamMgrFactory || mod.default || mod;
-      } catch (e) {
-        console.warn('Could not load vendored @webaudiomodules/sdk-parammgr, falling back to local shim', e);
-        const mod = await import('../sdk/ParamMgrFactory.js');
-        ParamMgrFactory = mod.ParamMgrFactory || mod.default || mod;
-      }
       paramMgrNode = await ParamMgrFactory.create(this, optionsIn);
     } catch (err) {
       const guidance = `ParamMgrFactory.create failed: ensure the host initialized the WAM environment in the AudioWorklet global scope before creating the plugin. Call the host helper (e.g. initializeWamEnv via addFunctionModule) or run inside an official WAM host. Original error: ${err && err.message ? err.message : err}`;
