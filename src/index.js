@@ -9,7 +9,7 @@
  */
 
 import { WebAudioModule } from '../@webaudiomodules/sdk/src/WebAudioModule.js';
-import { ParamMgrFactory } from '../host/vendor/sdk-parammgr/index.js';
+import ParamMgrFactory from '../host/vendor/ParamMgrFactory.js';
 import SamplerNode from './Node.js';
 import { createElement } from './gui/index.js';
 
@@ -76,7 +76,7 @@ export default class SamplerPlugin extends WebAudioModule {
    * @returns {Promise<SamplerNode>}
    */
   async createAudioNode(initialState = {}) {
-    const samplerNode = new SamplerNode(this.audioContext);
+    const samplerNode = new SamplerNode(this.audioContext, {});
 
     // Configuration des paramètres internes (AudioParams natifs)
     const internalParamsConfig = {};
@@ -91,42 +91,50 @@ export default class SamplerPlugin extends WebAudioModule {
       const pad = samplerNode.pads[i];
       if (!pad) continue;
 
+      const volKey = 'pad' + i + '_volume';
+      const panKey = 'pad' + i + '_pan';
+      const freqKey = 'pad' + i + '_filter_frequency';
+      const pitchKey = 'pad' + i + '_pitch';
+      const trimStartKey = 'pad' + i + '_trimStart';
+      const trimEndKey = 'pad' + i + '_trimEnd';
+      const reverseKey = 'pad' + i + '_reverse';
+
       // Volume et pan via AudioParams natifs
       if (pad.gainNode && pad.gainNode.gain) {
-        internalParamsConfig[`pad${i}_volume`] = pad.gainNode.gain;
+        internalParamsConfig[volKey] = pad.gainNode.gain;
       }
       if (pad.pannerNode && pad.pannerNode.pan) {
-        internalParamsConfig[`pad${i}_pan`] = pad.pannerNode.pan;
+        internalParamsConfig[panKey] = pad.pannerNode.pan;
       }
 
       // Tone/filter frequency via AudioParam
       if (pad.filterNode && pad.filterNode.frequency) {
-        internalParamsConfig[`pad${i}_filter_frequency`] = pad.filterNode.frequency;
+        internalParamsConfig[freqKey] = pad.filterNode.frequency;
       }
 
       // Paramètres non-AudioParam avec onChange
-      internalParamsConfig[`pad${i}_pitch`] = {
+      internalParamsConfig[pitchKey] = {
         defaultValue: 1.0,
         minValue: 0.5,
         maxValue: 2.0,
         onChange: (v) => { samplerNode.setPadPitch(i, v); }
       };
 
-      internalParamsConfig[`pad${i}_trimStart`] = {
+      internalParamsConfig[trimStartKey] = {
         defaultValue: 0,
         minValue: 0,
         maxValue: 1,
         onChange: (v) => { samplerNode.setPadTrimStart(i, v); }
       };
 
-      internalParamsConfig[`pad${i}_trimEnd`] = {
+      internalParamsConfig[trimEndKey] = {
         defaultValue: 1,
         minValue: 0,
         maxValue: 1,
         onChange: (v) => { samplerNode.setPadTrimEnd(i, v); }
       };
 
-      internalParamsConfig[`pad${i}_reverse`] = {
+      internalParamsConfig[reverseKey] = {
         defaultValue: 0,
         minValue: 0,
         maxValue: 1,
@@ -137,11 +145,12 @@ export default class SamplerPlugin extends WebAudioModule {
     // Mapping tone (-1..1) vers filter frequency (200..20000Hz)
     const paramsMapping = {};
     for (let i = 0; i < 16; i += 1) {
-      paramsMapping[`pad${i}_tone`] = {
-        [`pad${i}_filter_frequency`]: {
-          sourceRange: [-1, 1],
-          targetRange: [200, 20000]
-        }
+      const toneKey = `pad${i}_tone`;
+      const freqKey = `pad${i}_filter_frequency`;
+      paramsMapping[toneKey] = {};
+      paramsMapping[toneKey][freqKey] = {
+        sourceRange: [-1, 1],
+        targetRange: [200, 20000]
       };
     }
 
