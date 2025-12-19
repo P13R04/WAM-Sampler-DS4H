@@ -63,8 +63,7 @@ export default class SamplerPlugin extends WebAudioModule {
    */
   async initialize(state) {
     await this._loadDescriptor();
-    this.state = state || {};
-    return this;
+    return super.initialize(state);
   }
 
 
@@ -76,7 +75,7 @@ export default class SamplerPlugin extends WebAudioModule {
    * @param {Object} initialState - État initial des paramètres
    * @returns {Promise<SamplerNode>}
    */
-  async createAudioNode(initialState) {
+  async createAudioNode(initialState = {}) {
     const samplerNode = new SamplerNode(this.audioContext);
 
     // Configuration des paramètres internes (AudioParams natifs)
