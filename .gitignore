@@ -28,3 +28,4 @@ Thumbs.db
 # Environnement
 .env
 .env.local
+*.bak
