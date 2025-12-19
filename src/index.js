@@ -11,7 +11,7 @@
  * @author Pierre Constantin, Baptiste Giacchero
  */
 
-import { ParamMgrFactory } from '../node_modules/@webaudiomodules/sdk-parammgr/dist/index.js';
+import { ParamMgrFactory } from '../host/vendor/sdk-parammgr/index.js';
 import SamplerNode from './Node.js';
 import { createElement } from './gui/index.js';
 
