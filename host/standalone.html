@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sampler WAM - Standalone</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 24px;
+      background: linear-gradient(135deg, #0b1224, #1e293b);
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+    }
+    #mount {
+      box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+    }
+  </style>
+</head>
+<body>
+  <div id="mount"></div>
+
+  <script type="module">
+    /**
+     * Mode standalone : test rapide sans host WAM
+     * Le plugin est créé directement sans initializeWamHost
+     */
+
+    import SamplerPlugin from '../src/index.js';
+
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+    async function main() {
+      // Ensure WAM env is initialized in the AudioWorklet global for standalone
+      try {
+        await audioContext.audioWorklet.addModule('./sdk/initializeWamEnv.js');
+      } catch (e) {
+        console.warn('Could not load local initializeWamEnv.js, standalone may fail without a host', e);
+      }
+
+      // Créer une instance du plugin (mode standalone)
+      const plugin = await SamplerPlugin.createInstance('standalone', audioContext);
+      
+      // Connecter à la sortie audio
+      plugin.audioNode.connect(audioContext.destination);
+
+      // MIDI handled inside plugin; hosts should not duplicate mapping.
+
+      // Créer et monter la GUI
+      const gui = await plugin.createGui();
+      document.getElementById('mount').appendChild(gui);
+
+      console.log('✓ Sampler standalone prêt');
+    }
+
+    // Reprendre l'audio context au premier clic (requis par les navigateurs)
+    window.addEventListener('click', () => {
+      if (audioContext.state === 'suspended') {
+        audioContext.resume();
+      }
+    }, { once: true });
+
+    main().catch(err => {
+      console.error('Erreur initialisation:', err);
+      document.body.innerHTML = `<h1 style="color:white">Erreur: ${err.message}</h1>`;
+    });
+  </script>
+</body>
+</html>

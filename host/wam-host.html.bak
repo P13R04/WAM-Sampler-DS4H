@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Host WAM - Sampler Clean</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 24px;
+      background: linear-gradient(135deg, #0b1224, #1e293b);
+      color: #e2e8f0;
+      font-family: 'Segoe UI', Tahoma, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+    h1 {
+      color: #60a5fa;
+      margin-bottom: 12px;
+    }
+    .info {
+      background: rgba(30, 41, 59, 0.8);
+      padding: 16px;
+      border-radius: 8px;
+      border: 1px solid #334155;
+      margin-bottom: 24px;
+      max-width: 600px;
+      line-height: 1.6;
+    }
+    #mount {
+      box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+    }
+    .status {
+      margin-top: 16px;
+      padding: 12px 20px;
+      background: rgba(15, 23, 42, 0.9);
+      border-radius: 8px;
+      border: 1px solid #1d4ed8;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      color: #cbd5e1;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎛️ Host WAM - Sampler Clean</h1>
+  <div class="info">
+    <strong>Mode WAM officiel</strong> : Chargement via <code>initializeWamHost()</code> depuis le CDN officiel.
+    <br>
+    Ce host respecte le standard WAM 2.0 et peut charger n'importe quel plugin WAM compatible.
+  </div>
+  <div id="mount"></div>
+  <div class="status" id="status">Initialisation...</div>
+  <div class="info" style="margin-top:12px; max-width:800px;">
+    <strong>Charger un plugin WAM tiers</strong>
+    <div style="display:flex; gap:8px; margin-top:8px;">
+      <input id="plugin-url" type="text" placeholder="URL du module WAM (ESM)" style="flex:1; padding:8px; border-radius:6px; border:1px solid #334155; background:#0f172a; color:#e2e8f0;" />
+      <button id="btn-load-plugin">Charger plugin</button>
+      <button id="btn-load-known">Charger plugin connu</button>
+    </div>
+    <small>Le plugin sera inséré en chaîne après le sampler (sampler → plugin → sortie).</small>
+  </div>
+
+  <script type="module">
+    /**
+     * Host WAM officiel
+     * Utilise initializeWamHost du CDN pour créer un groupe WAM
+     * Le plugin est chargé avec un hostGroupId valide
+     */
+
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const statusEl = document.getElementById('status');
+
+    function setStatus(msg) {
+      statusEl.textContent = msg;
+      console.log(msg);
+    }
+
+    async function main() {
+      try {
+        setStatus('⏳ Initialisation du host WAM...');
+        
+        // Importer et initialiser le host WAM depuis le CDN
+        const { default: initializeWamHost } = await import(
+          'https://www.webaudiomodules.com/sdk/2.0.0-alpha.6/src/initializeWamHost.js'
+        );
+        const [hostGroupId] = await initializeWamHost(audioContext);
+        
+        setStatus(`✓ Host WAM initialisé (groupId: ${hostGroupId})`);
+
+        // Charger le plugin sampler avec le hostGroupId
+        setStatus('⏳ Chargement du plugin sampler...');
+        const { default: SamplerPlugin } = await import('../src/index.js');
+        const sampler = await SamplerPlugin.createInstance(hostGroupId, audioContext);
+        
+        setStatus('✓ Plugin sampler créé');
+
+        // Connecter à la sortie audio
+        sampler.audioNode.connect(audioContext.destination);
+        setStatus('✓ Audio connecté');
+
+        // Créer et monter la GUI
+        const gui = await sampler.createGui();
+        document.getElementById('mount').appendChild(gui);
+        
+        setStatus('✓ Sampler prêt ! Chargez des samples avec le bouton 📁 ou drag & drop.');
+
+        console.log('Plugin sampler:', sampler);
+        console.log('Audio node:', sampler.audioNode);
+
+        // Gestion du chargement de plugins WAM tiers
+        const urlInput = document.getElementById('plugin-url');
+        const btnLoad = document.getElementById('btn-load-plugin');
+        const btnKnown = document.getElementById('btn-load-known');
+
+        async function loadWam(url) {
+          try {
+            setStatus(`⏳ Chargement plugin WAM depuis ${url} ...`);
+            const { default: WAM } = await import(url);
+            const plugin = await WAM.createInstance(hostGroupId, audioContext);
+            
+            // Chaîne : sampler → plugin → destination
+            sampler.audioNode.disconnect();
+            sampler.audioNode.connect(plugin.audioNode);
+            plugin.audioNode.connect(audioContext.destination);
+            
+            setStatus('✓ Plugin WAM chargé et connecté après le sampler');
+            console.log('WAM tiers:', plugin);
+            return plugin;
+          } catch (e) {
+            setStatus(`✗ Échec chargement plugin : ${e.message}`);
+            console.error(e);
+            throw e;
+          }
+        }
+
+        btnLoad.onclick = () => {
+          const url = urlInput.value.trim();
+          if (url) loadWam(url);
+        };
+
+        // Bouton démo : tente deux plugins connus (si accessibles)
+        btnKnown.onclick = async () => {
+          // Essais de plusieurs miroirs/variantes pour un plugin connu (GreyHole).
+          const candidates = [
+            // Ancien domaine
+            'https://www.webaudiomodules.com/plugins/wimmics/greyhole/index.mjs',
+            'https://www.webaudiomodules.com/plugins/wimmics/greyhole/index.js',
+            // Domaine actuel probable
+            'https://webaudiomodules.org/packages/wimmics/greyhole/index.mjs',
+            'https://webaudiomodules.org/packages/wimmics/greyhole/index.js',
+            // CDN miroirs courants
+            'https://cdn.jsdelivr.net/gh/WeAreWimmics/greyhole@main/index.mjs',
+            'https://unpkg.com/@wimmics/greyhole/dist/index.mjs',
+            'https://unpkg.com/@wimmics/greyhole/index.mjs',
+          ];
+          let ok = false;
+          for (const u of candidates) {
+            try {
+              await loadWam(u);
+              ok = true;
+              break;
+            } catch (e) {
+              console.warn('Essai échoué pour', u, e.message);
+            }
+          }
+          if (!ok) setStatus('✗ Aucune URL miroir n’a fonctionné. Renseignez l’URL ESM valide du plugin dans le champ.');
+        };
+        
+      } catch (err) {
+        setStatus(`✗ Erreur : ${err.message}`);
+        console.error('Erreur initialisation host WAM:', err);
+      }
+    }
+
+    // Reprendre l'audio context au premier clic
+    window.addEventListener('click', () => {
+      if (audioContext.state === 'suspended') {
+        audioContext.resume();
+        setStatus('✓ Audio context repris');
+      }
+    }, { once: true });
+
+    main();
+  </script>
+</body>
+</html>

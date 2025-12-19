@@ -1,0 +1,30 @@
+# Node modules
+node_modules/
+package-lock.json
+
+# Données serveur (locales)
+server/data/presets/*.json
+server/data/samples/*
+
+# Garder les répertoires vides
+!server/data/presets/.gitkeep
+!server/data/samples/.gitkeep
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Environnement
+.env
+.env.local

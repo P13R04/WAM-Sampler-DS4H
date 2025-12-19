@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Headless WAM Host — Sampler Test</title>
+  <style>
+    body { font-family: Arial, Helvetica, sans-serif; background:#0b1224;color:#e6eef8;padding:18px }
+    h1{font-size:18px;margin:0 0 12px}
+    #pad-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;max-width:360px}
+    .pad-btn{padding:10px 6px;border-radius:6px;border:1px solid #334155;background:#0f172a;color:#cbd5e1;cursor:pointer}
+    .controls{margin-top:12px;display:flex;gap:8px;align-items:center}
+    label{font-size:13px;margin-right:6px}
+    #status{margin-top:12px;color:#9fb7d9}
+  </style>
+</head>
+<body>
+  <h1>Headless WAM Host — Sampler Test</h1>
+
+  <div id="pad-grid" aria-label="Pads"></div>
+
+  <div class="controls">
+    <label>Selected pad: <strong id="selected">0</strong></label>
+    <input id="file-input" type="file" accept="audio/*" />
+    <button id="btn-load">Load → Pad</button>
+    <button id="btn-play">Play</button>
+  </div>
+
+  <div class="controls" style="margin-top:8px">
+    <label>Server presets:</label>
+    <select id="preset-select"><option value="">(none)</option></select>
+    <button id="btn-load-preset">Load Preset</button>
+  </div>
+
+  <div id="status">Initialisation...</div>
+
+  <script type="module">
+    import SamplerPlugin from '../src/index.js';
+
+    const status = document.getElementById('status');
+    const padGrid = document.getElementById('pad-grid');
+    const selectedEl = document.getElementById('selected');
+    const fileInput = document.getElementById('file-input');
+    const btnLoad = document.getElementById('btn-load');
+    const btnPlay = document.getElementById('btn-play');
+
+    const NUM_PADS = 16;
+    let selectedPad = 0;
+
+    async function init() {
+      status.textContent = 'Initialisation audio...';
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+      // Ensure WAM env is initialized in the AudioWorklet global for standalone/headless
+      try {
+        await audioContext.audioWorklet.addModule('./sdk/initializeWamEnv.js');
+      } catch (e) {
+        console.warn('Could not load local initializeWamEnv.js, headless host may fail without a host', e);
+      }
+
+      // Create plugin instance (headless — do not call createGui)
+      const plugin = await SamplerPlugin.createInstance('headless-host', audioContext);
+      const audioNode = plugin.audioNode;
+      if (!audioNode) {
+        status.textContent = 'Erreur: audioNode non créé';
+        return;
+      }
+
+      // Connect to destination so we can hear playback
+      audioNode.connect(audioContext.destination);
+
+      status.textContent = 'Prêt. Utilisez les boutons ou le clavier pour jouer les pads.';
+
+      // build pad buttons
+      for (let i = 0; i < NUM_PADS; i += 1) {
+        const b = document.createElement('button');
+        b.className = 'pad-btn';
+        b.textContent = `Pad ${i + 1}`;
+        b.dataset.index = i;
+        b.onclick = () => {
+          selectedPad = i; selectedEl.textContent = i;
+          // only play if buffer loaded
+          const pad = audioNode.pads && audioNode.pads[i];
+          if (pad && pad.buffer) {
+            audioNode.playPad(i, 1.0);
+            b.classList.add('playing');
+            setTimeout(() => b.classList.remove('playing'), 120);
+          } else {
+            status.textContent = `Pad ${i} vide — chargez un sample avant de jouer`;
+          }
+        };
+        padGrid.appendChild(b);
+      }
+
+      // load file into selected pad
+      btnLoad.onclick = async () => {
+        const f = fileInput.files && fileInput.files[0];
+        if (!f) return alert('Sélectionnez un fichier audio');
+        try {
+          const ab = await f.arrayBuffer();
+          const buffer = await audioContext.decodeAudioData(ab);
+          audioNode.loadSample(selectedPad, buffer);
+          status.textContent = `Fichier chargé dans le pad ${selectedPad}`;
+          // mark button as loaded
+          const btn = padGrid.querySelector(`[data-index="${selectedPad}"]`);
+          if (btn) btn.classList.add('loaded');
+        } catch (e) {
+          console.warn(e);
+          status.textContent = 'Erreur de chargement du fichier';
+        }
+      };
+
+      // play selected pad
+      btnPlay.onclick = () => {
+        audioNode.playPad(selectedPad, 1.0);
+      };
+
+      // keyboard mapping (shadow-DOM aware check for typing)
+      const KEY_MAPPING = {
+        'KeyW':0,'KeyX':1,'KeyC':2,'KeyV':3,
+        'KeyQ':4,'KeyS':5,'KeyD':6,'KeyF':7,
+        'KeyA':8,'KeyZ':9,'KeyE':10,'KeyR':11,
+        'Digit1':12,'Digit2':13,'Digit3':14,'Digit4':15
+      };
+
+      window.addEventListener('keydown', (e) => {
+        try {
+          const path = (e.composedPath && e.composedPath()) || [];
+          const typing = path.some((n) => n && (n.tagName === 'INPUT' || n.tagName === 'TEXTAREA' || n.isContentEditable));
+          if (typing) return;
+        } catch (_) {
+          const active = document.activeElement;
+          if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable)) return;
+        }
+
+        const padIndex = KEY_MAPPING[e.code];
+        if (padIndex !== undefined) {
+          e.preventDefault();
+          // only play if buffer loaded to avoid console warnings
+          const pad = audioNode.pads && audioNode.pads[padIndex];
+          if (pad && pad.buffer) {
+            audioNode.playPad(padIndex, 0.9);
+            selectedPad = padIndex;
+            selectedEl.textContent = selectedPad;
+            const btn = padGrid.querySelector(`[data-index="${padIndex}"]`);
+            if (btn) { btn.classList.add('playing'); setTimeout(() => btn.classList.remove('playing'), 120); }
+          } else {
+            status.textContent = `Pad ${padIndex} vide — chargez un sample ou choisissez un preset`;
+          }
+        }
+      });
+
+      // MIDI handled inside plugin; hosts should not duplicate mapping.
+
+      // --- Preset loading from server ---
+      const presetSelect = document.getElementById('preset-select');
+      const btnLoadPreset = document.getElementById('btn-load-preset');
+
+      async function fetchPresets() {
+        try {
+          const resp = await fetch('http://localhost:3000/api/presets');
+          if (!resp.ok) throw new Error('HTTP ' + resp.status);
+          const presets = await resp.json();
+          presetSelect.innerHTML = '<option value="">(choose)</option>';
+          presets.forEach((p) => {
+            const opt = document.createElement('option');
+            opt.value = p.id;
+            opt.textContent = p.name || p.id;
+            presetSelect.appendChild(opt);
+          });
+          status.textContent = `Presets récupérés: ${presets.length}`;
+        } catch (e) {
+          console.warn('fetchPresets failed', e);
+          status.textContent = 'Impossible de récupérer les presets (server down?)';
+        }
+      }
+
+      async function loadPreset(id) {
+        if (!id) return;
+        try {
+          status.textContent = 'Chargement preset...';
+          const resp = await fetch(`http://localhost:3000/api/presets/${id}`);
+          if (!resp.ok) throw new Error('HTTP ' + resp.status);
+          const preset = await resp.json();
+
+          if (preset.parameters) {
+            try { audioNode.setParamsValues(preset.parameters); } catch (e) { /* ignore */ }
+          }
+
+          const samples = preset.samples || [];
+          for (const s of samples) {
+            try {
+              let url = s.url || s.src || s.filename || null;
+              if (!url) continue;
+              if (url.startsWith('/')) url = 'http://localhost:3000' + url;
+              const r = await fetch(url);
+              if (!r.ok) throw new Error('Sample fetch ' + r.status);
+              const ab = await r.arrayBuffer();
+              const buffer = await audioContext.decodeAudioData(ab);
+              const idx = Number(s.padIndex || s.slot || s.pad || 0);
+              audioNode.loadSample(idx, buffer);
+              const btn = padGrid.querySelector(`[data-index="${idx}"]`);
+              if (btn) btn.classList.add('loaded');
+            } catch (err) {
+              console.warn('sample load failed', err);
+            }
+          }
+
+          status.textContent = `Preset chargé: ${preset.name || preset.id}`;
+        } catch (e) {
+          console.warn('loadPreset failed', e);
+          status.textContent = 'Erreur chargement preset';
+        }
+      }
+
+      fetchPresets();
+      btnLoadPreset.onclick = () => loadPreset(presetSelect.value);
+    }
+
+    init().catch((e) => { console.error(e); document.getElementById('status').textContent = 'Init failed'; });
+  </script>
+</body>
+</html>

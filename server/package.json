@@ -1,0 +1,19 @@
+{
+  "name": "wam-sampler-server",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "description": "Serveur REST local pour gérer presets et samples du WAM Sampler",
+  "scripts": {
+    "start": "node index.mjs",
+    "dev": "node --watch index.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "multer": "^2.0.2"
+  }
+}

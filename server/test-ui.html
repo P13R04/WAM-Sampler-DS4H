@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test API Presets - WAM Sampler</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #0b1224, #1e293b);
+      color: #e2e8f0;
+      padding: 20px;
+      min-height: 100vh;
+    }
+    
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    
+    h1 {
+      color: #60a5fa;
+      margin-bottom: 10px;
+      font-size: 28px;
+    }
+    
+    .status {
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 20px;
+      font-size: 14px;
+    }
+    
+    .status.online { border-color: #22c55e; color: #22c55e; }
+    .status.offline { border-color: #ef4444; color: #ef4444; }
+    
+    .section {
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    
+    h2 {
+      color: #60a5fa;
+      font-size: 18px;
+      margin-bottom: 15px;
+    }
+    
+    .form-group {
+      margin-bottom: 15px;
+    }
+    
+    label {
+      display: block;
+      color: #cbd5e1;
+      margin-bottom: 5px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    
+    input[type="text"],
+    textarea,
+    select {
+      width: 100%;
+      padding: 10px;
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      color: #e2e8f0;
+      font-size: 14px;
+      font-family: inherit;
+    }
+    
+    textarea {
+      resize: vertical;
+      min-height: 100px;
+      font-family: 'Monaco', 'Courier New', monospace;
+      font-size: 12px;
+    }
+    
+    button {
+      background: linear-gradient(135deg, #1e3a8a, #1d4ed8);
+      border: 1px solid #1d4ed8;
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.15s ease;
+      margin-right: 10px;
+      margin-bottom: 10px;
+    }
+    
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 14px rgba(29,78,216,0.5);
+      background: linear-gradient(135deg, #1d4ed8, #3b82f6);
+    }
+    
+    button:active {
+      transform: translateY(0);
+    }
+    
+    button.danger {
+      background: linear-gradient(135deg, #991b1b, #dc2626);
+      border-color: #dc2626;
+    }
+    
+    button.danger:hover {
+      background: linear-gradient(135deg, #dc2626, #ef4444);
+    }
+    
+    .preset-list {
+      list-style: none;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    
+    .preset-item {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      padding: 12px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    
+    .preset-item:hover {
+      border-color: #60a5fa;
+      background: #1e3a5a;
+    }
+    
+    .preset-item.selected {
+      border-color: #60a5fa;
+      background: #1e3a5a;
+      box-shadow: 0 0 12px rgba(96,165,250,0.3);
+    }
+    
+    .preset-name {
+      font-weight: 600;
+      color: #e2e8f0;
+      margin-bottom: 4px;
+    }
+    
+    .preset-meta {
+      font-size: 12px;
+      color: #94a3b8;
+    }
+    
+    .response {
+      background: #000;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      padding: 12px;
+      margin-top: 15px;
+      font-family: 'Monaco', 'Courier New', monospace;
+      font-size: 12px;
+      color: #22c55e;
+      max-height: 300px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
+    
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎛️ Test API Presets WAM Sampler</h1>
+    <div id="status" class="status">Vérification du serveur...</div>
+    
+    <!-- Liste des presets -->
+    <div class="section">
+      <h2>📋 Presets Disponibles</h2>
+      <div class="actions">
+        <button onclick="refreshPresets()">🔄 Actualiser</button>
+        <button onclick="deleteSelected()" class="danger">🗑️ Supprimer sélectionné</button>
+      </div>
+      <ul id="preset-list" class="preset-list"></ul>
+    </div>
+    
+    <!-- Créer un preset -->
+    <div class="section">
+      <h2>➕ Créer un Nouveau Preset</h2>
+      <div class="form-group">
+        <label for="new-name">Nom du preset</label>
+        <input type="text" id="new-name" placeholder="Mon Super Kit">
+      </div>
+      <div class="form-group">
+        <label for="new-params">Paramètres (JSON)</label>
+        <textarea id="new-params" placeholder='{"param_pad_0_volume": 0.8}'>{
+  "param_pad_0_volume": 0.9,
+  "param_pad_0_pan": 0.0,
+  "param_pad_1_volume": 0.8,
+  "param_pad_1_pitch": 1.2
+}</textarea>
+      </div>
+      <button onclick="createPreset()">💾 Créer Preset</button>
+      <div id="create-response" class="response" style="display:none;"></div>
+    </div>
+    
+    <!-- Détails preset sélectionné -->
+    <div class="section">
+      <h2>🔍 Détails du Preset Sélectionné</h2>
+      <div class="form-group">
+        <label for="selected-id">ID</label>
+        <input type="text" id="selected-id" readonly>
+      </div>
+      <div class="form-group">
+        <label for="selected-name">Nom</label>
+        <input type="text" id="selected-name">
+      </div>
+      <div class="form-group">
+        <label for="selected-params">Paramètres (JSON)</label>
+        <textarea id="selected-params"></textarea>
+      </div>
+      <div class="actions">
+        <button onclick="updatePreset()">💾 Mettre à Jour</button>
+        <button onclick="loadPreset()">📥 Recharger depuis serveur</button>
+      </div>
+      <div id="update-response" class="response" style="display:none;"></div>
+    </div>
+    
+    <!-- Test health -->
+    <div class="section">
+      <h2>🏥 Tests Serveur</h2>
+      <div class="actions">
+        <button onclick="testHealth()">🏥 Health Check</button>
+        <button onclick="testSearch()">🔍 Recherche (trap)</button>
+      </div>
+      <div id="test-response" class="response" style="display:none;"></div>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = 'http://localhost:3000';
+    let selectedPresetId = null;
+    let presets = [];
+
+    // Vérifier connexion serveur
+    async function checkServer() {
+      const statusDiv = document.getElementById('status');
+      try {
+        const res = await fetch(`${API_URL}/api/health`);
+        const data = await res.json();
+        if (data.ok) {
+          statusDiv.textContent = `✅ Serveur connecté : ${data.server} - ${new Date(data.now).toLocaleString('fr-FR')}`;
+          statusDiv.className = 'status online';
+          refreshPresets();
+        }
+      } catch (e) {
+        statusDiv.textContent = `❌ Serveur inaccessible : ${e.message}`;
+        statusDiv.className = 'status offline';
+      }
+    }
+
+    // Actualiser liste presets
+    async function refreshPresets() {
+      try {
+        const res = await fetch(`${API_URL}/api/presets`);
+        presets = await res.json();
+        
+        const list = document.getElementById('preset-list');
+        if (presets.length === 0) {
+          list.innerHTML = '<li style="color: #94a3b8; padding: 20px; text-align: center;">Aucun preset disponible</li>';
+        } else {
+          list.innerHTML = presets.map(p => `
+            <li class="preset-item ${p.id === selectedPresetId ? 'selected' : ''}" onclick="selectPreset('${p.id}')">
+              <div class="preset-name">${p.name}</div>
+              <div class="preset-meta">
+                ID: ${p.id} | User: ${p.user} | Créé: ${new Date(p.created).toLocaleString('fr-FR')}
+              </div>
+            </li>
+          `).join('');
+        }
+      } catch (e) {
+        console.error('Erreur refresh presets:', e);
+        showResponse('create-response', `Erreur: ${e.message}`, false);
+      }
+    }
+
+    // Sélectionner un preset
+    function selectPreset(id) {
+      selectedPresetId = id;
+      const preset = presets.find(p => p.id === id);
+      if (preset) {
+        document.getElementById('selected-id').value = preset.id;
+        document.getElementById('selected-name').value = preset.name;
+        document.getElementById('selected-params').value = JSON.stringify(preset.parameters, null, 2);
+      }
+      refreshPresets();
+    }
+
+    // Créer un preset
+    async function createPreset() {
+      const name = document.getElementById('new-name').value.trim();
+      if (!name) {
+        alert('Nom requis');
+        return;
+      }
+
+      let parameters = {};
+      try {
+        parameters = JSON.parse(document.getElementById('new-params').value);
+      } catch (e) {
+        alert('JSON paramètres invalide');
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API_URL}/api/presets`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name,
+            parameters,
+            samples: []
+          })
+        });
+
+        const data = await res.json();
+        showResponse('create-response', JSON.stringify(data, null, 2), res.ok);
+        if (res.ok) {
+          document.getElementById('new-name').value = '';
+          await refreshPresets();
+        }
+      } catch (e) {
+        showResponse('create-response', `Erreur: ${e.message}`, false);
+      }
+    }
+
+    // Mettre à jour preset
+    async function updatePreset() {
+      if (!selectedPresetId) {
+        alert('Sélectionnez un preset');
+        return;
+      }
+
+      const name = document.getElementById('selected-name').value.trim();
+      let parameters = {};
+      try {
+        parameters = JSON.parse(document.getElementById('selected-params').value);
+      } catch (e) {
+        alert('JSON paramètres invalide');
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API_URL}/api/presets/${selectedPresetId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, parameters })
+        });
+
+        const data = await res.json();
+        showResponse('update-response', JSON.stringify(data, null, 2), res.ok);
+        if (res.ok) await refreshPresets();
+      } catch (e) {
+        showResponse('update-response', `Erreur: ${e.message}`, false);
+      }
+    }
+
+    // Recharger preset depuis serveur
+    async function loadPreset() {
+      if (!selectedPresetId) {
+        alert('Sélectionnez un preset');
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API_URL}/api/presets/${selectedPresetId}`);
+        const data = await res.json();
+        
+        document.getElementById('selected-name').value = data.name;
+        document.getElementById('selected-params').value = JSON.stringify(data.parameters, null, 2);
+        
+        showResponse('update-response', 'Preset rechargé', true);
+      } catch (e) {
+        showResponse('update-response', `Erreur: ${e.message}`, false);
+      }
+    }
+
+    // Supprimer preset sélectionné
+    async function deleteSelected() {
+      if (!selectedPresetId) {
+        alert('Sélectionnez un preset');
+        return;
+      }
+
+      if (!confirm('Supprimer ce preset ?')) return;
+
+      try {
+        const res = await fetch(`${API_URL}/api/presets/${selectedPresetId}`, {
+          method: 'DELETE'
+        });
+
+        const data = await res.json();
+        showResponse('update-response', JSON.stringify(data, null, 2), res.ok);
+        
+        if (res.ok) {
+          selectedPresetId = null;
+          document.getElementById('selected-id').value = '';
+          document.getElementById('selected-name').value = '';
+          document.getElementById('selected-params').value = '';
+          await refreshPresets();
+        }
+      } catch (e) {
+        showResponse('update-response', `Erreur: ${e.message}`, false);
+      }
+    }
+
+    // Test health
+    async function testHealth() {
+      try {
+        const res = await fetch(`${API_URL}/api/health`);
+        const data = await res.json();
+        showResponse('test-response', JSON.stringify(data, null, 2), res.ok);
+      } catch (e) {
+        showResponse('test-response', `Erreur: ${e.message}`, false);
+      }
+    }
+
+    // Test recherche
+    async function testSearch() {
+      try {
+        const res = await fetch(`${API_URL}/api/presets?q=trap`);
+        const data = await res.json();
+        showResponse('test-response', JSON.stringify(data, null, 2), res.ok);
+      } catch (e) {
+        showResponse('test-response', `Erreur: ${e.message}`, false);
+      }
+    }
+
+    // Afficher réponse
+    function showResponse(id, text, success = true) {
+      const div = document.getElementById(id);
+      div.textContent = text;
+      div.style.display = 'block';
+      div.style.color = success ? '#22c55e' : '#ef4444';
+    }
+
+    // Init
+    checkServer();
+  </script>
+</body>
+</html>
