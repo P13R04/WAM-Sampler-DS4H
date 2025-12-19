@@ -2,17 +2,10 @@
 /**
  * WAM Sampler Node - Moteur DSP principal
  * 
- * Architecture :
- * - 16 pads audio indépendants (SamplePad)
- * - Chaque pad : buffer, gain, pan, filter (tone), pitch, trim, reverse
- * - Polyphonie limitée par pad (3 voix max pour éviter fuites mémoire)
- * - Master gain pour contrôle global
- * - Séparation stricte DSP/GUI : aucune logique UI ici
- * 
  * @author Pierre Constantin, Baptiste Giacchero
  */
 
-import { CompositeAudioNode } from '../host/vendor/sdk-parammgr/index.js';
+import { CompositeAudioNode } from '@webaudiomodules/sdk-parammgr';
 
 /**
  * Inverse un AudioBuffer (lecture reverse)
@@ -462,26 +455,7 @@ export default class SamplerNode extends CompositeAudioNode {
     this._output = this.panNode;
   }
 
-  /**
-   * Connexion compatible WAM:
-   * - Accepte destination AudioNode ou CompositeAudioNode (_input)
-   */
-  connect(destination) {
-    const dest = destination && (destination._input || destination);
-    if (dest) this._output.connect(dest);
-    else this._output.connect();
-    return destination;
-  }
 
-  /**
-   * Déconnexion compatible WAM:
-   * - Accepte destination AudioNode ou CompositeAudioNode (_input)
-   */
-  disconnect(destination) {
-    const dest = destination && (destination._input || destination);
-    if (dest) this._output.disconnect(dest);
-    else this._output.disconnect();
-  }
 
   /**
    * Jouer un pad
