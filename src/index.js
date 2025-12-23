@@ -8,8 +8,8 @@
  * @author Pierre Constantin, Baptiste Giacchero
  */
 
-import { WebAudioModule } from '../@webaudiomodules/sdk/src/WebAudioModule.js';
-import ParamMgrFactory from '../host/vendor/ParamMgrFactory.js';
+import { WebAudioModule } from '../sdk/index.js';
+import { ParamMgrFactory } from '../sdk-parammgr/index.js';
 import SamplerNode from './Node.js';
 import { createElement } from './gui/index.js';
 
