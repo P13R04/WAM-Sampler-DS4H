@@ -1,17 +1,10 @@
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Sampler WAM - Standalone</title>
-  <script type="importmap">
-  {
-    "imports": {
-      "@webaudiomodules/sdk": "../@webaudiomodules/sdk/index.js",
-      "@webaudiomodules/sdk-parammgr": "../@webaudiomodules/sdk-parammgr/index.js"
-    }
-  }
-  </script>
   <style>
     body {
       margin: 0;
@@ -23,11 +16,13 @@
       min-height: 100vh;
       font-family: 'Segoe UI', Tahoma, sans-serif;
     }
+
     #mount {
-      box-shadow: 0 20px 60px rgba(0,0,0,0.7);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
     }
   </style>
 </head>
+
 <body>
   <div id="mount"></div>
 
@@ -37,38 +32,30 @@
      * Le plugin est créé directement sans initializeWamHost
      */
 
-    import SamplerPlugin from '../src/index.js';
+    const SamplerPluginURL = '../samplerPlugin/src/index.js';
 
-    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const audioContext = new AudioContext();
 
     async function main() {
-      try {
-        // Option 1: Use SDK initializeWamHost if available
-        const { initializeWamHost } = await import('../@webaudiomodules/sdk/index.js');
-        if (initializeWamHost && typeof initializeWamHost === 'function') {
-          await initializeWamHost(audioContext);
-          console.log('✓ WAM host initialized via SDK');
-        }
-      } catch (e) {
-        // Option 2: Fallback to local stub
-        try {
-          await audioContext.audioWorklet.addModule('./sdk/initializeWamEnv.js');
-          console.log('✓ WAM env initialized via local stub');
-        } catch (err) {
-          console.warn('Could not initialize WAM env, plugin may fail', err);
-        }
-      }
+      // Init WamEnv
+      const { initializeWamHost } = await import('./sdk/index.js');
+      const initialParams = await initializeWamHost(audioContext);
+      const [hostGroupId] = initialParams;
 
-      // Créer une instance du plugin (mode standalone)
-      const plugin = await SamplerPlugin.createInstance('standalone', audioContext);
-      
+      // Load the WAM
+      const { default: WAM } = await import(SamplerPluginURL);
+      //const { default: WAM } = await import('https://www.webaudiomodules.com/community/plugins/wimmics/quadrafuzz/dist/index.js');
+
+      // Create a new instance of the plugin
+      // You can can optionnally give more options such as the initial state of the plugin
+      const wamInstance = await WAM.createInstance(hostGroupId, audioContext);
+
+      console.log('✓ Sampler instance created');
       // Connecter à la sortie audio
-      plugin.audioNode.connect(audioContext.destination);
-
-      // MIDI handled inside plugin; hosts should not duplicate mapping.
+      wamInstance.audioNode.connect(audioContext.destination);
 
       // Créer et monter la GUI
-      const gui = await plugin.createGui();
+      const gui = await wamInstance.createGui();
       document.getElementById('mount').appendChild(gui);
 
       console.log('✓ Sampler standalone prêt');
@@ -80,11 +67,8 @@
         audioContext.resume();
       }
     }, { once: true });
-
-    main().catch(err => {
-      console.error('Erreur initialisation:', err);
-      document.body.innerHTML = `<h1 style="color:white">Erreur: ${err.message}</h1>`;
-    });
+    main();
   </script>
 </body>
+
 </html>

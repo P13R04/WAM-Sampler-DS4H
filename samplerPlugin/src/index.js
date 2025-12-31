@@ -8,8 +8,8 @@
  * @author Pierre Constantin, Baptiste Giacchero
  */
 
-import { WebAudioModule } from '../@webaudiomodules/sdk/src/WebAudioModule.js';
-import ParamMgrFactory from '../host/vendor/ParamMgrFactory.js';
+import { WebAudioModule } from '../sdk/index.js';
+import { ParamMgrFactory } from '../sdk-parammgr/index.js';
 import SamplerNode from './Node.js';
 import { createElement } from './gui/index.js';
 
@@ -62,8 +62,11 @@ export default class SamplerPlugin extends WebAudioModule {
    * @param {Object} state - État initial (optionnel)
    */
   async initialize(state) {
+    console.log('state in initialize', state);
     await this._loadDescriptor();
-    return super.initialize(state);
+    console.log("descriptor", this.descriptor);
+    let result = super.initialize(state);
+    return result;
   }
 
 
@@ -76,6 +79,7 @@ export default class SamplerPlugin extends WebAudioModule {
    * @returns {Promise<SamplerNode>}
    */
   async createAudioNode(initialState = {}) {
+
     const samplerNode = new SamplerNode(this.audioContext, {});
 
     // Configuration des paramètres internes (AudioParams natifs)
@@ -99,6 +103,7 @@ export default class SamplerPlugin extends WebAudioModule {
       const trimEndKey = 'pad' + i + '_trimEnd';
       const reverseKey = 'pad' + i + '_reverse';
 
+      
       // Volume et pan via AudioParams natifs
       if (pad.gainNode && pad.gainNode.gain) {
         internalParamsConfig[volKey] = pad.gainNode.gain;
@@ -140,10 +145,12 @@ export default class SamplerPlugin extends WebAudioModule {
         maxValue: 1,
         onChange: (v) => { samplerNode.setPadReverse(i, v > 0.5); }
       };
+      
     }
 
     // Mapping tone (-1..1) vers filter frequency (200..20000Hz)
     const paramsMapping = {};
+    
     for (let i = 0; i < 16; i += 1) {
       const toneKey = `pad${i}_tone`;
       const freqKey = `pad${i}_filter_frequency`;

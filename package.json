@@ -12,7 +12,5 @@
     "node": ">=20"
   },
   "dependencies": {
-    "@webaudiomodules/api": "^2.0.0-alpha.6",
-    "@webaudiomodules/sdk-parammgr": "^0.0.13"
   }
 }
