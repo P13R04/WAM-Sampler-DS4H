@@ -122,7 +122,7 @@
 
         // Charger le plugin sampler avec le hostGroupId
         setStatus('⏳ Chargement du plugin sampler...');
-        const { default: SamplerPlugin } = await import('../src/index.js');
+        const { default: SamplerPlugin } = await import('../samplerPlugin/src/index.js');
         const sampler = await SamplerPlugin.createInstance(hostGroupId, audioContext);
         
         setStatus('✓ Plugin sampler créé');

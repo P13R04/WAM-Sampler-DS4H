@@ -35,7 +35,7 @@
   <div id="status">Initialisation...</div>
 
   <script type="module">
-    import SamplerPlugin from '../src/index.js';
+    const SamplerPluginURL = '../samplerPlugin/src/index.js';
 
     const status = document.getElementById('status');
     const padGrid = document.getElementById('pad-grid');
@@ -49,25 +49,26 @@
 
     async function init() {
       status.textContent = 'Initialisation audio...';
-      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const audioContext = new AudioContext();
 
-      // Ensure WAM env is initialized in the AudioWorklet global for standalone/headless
-      try {
-        await audioContext.audioWorklet.addModule('./sdk/initializeWamEnv.js');
-      } catch (e) {
-        console.warn('Could not load local initializeWamEnv.js, headless host may fail without a host', e);
-      }
+         // Init WamEnv
+      const { initializeWamHost } = await import('./sdk/index.js');
+      const initialParams = await initializeWamHost(audioContext);
+      const [hostGroupId] = initialParams;
 
-      // Create plugin instance (headless — do not call createGui)
-      const plugin = await SamplerPlugin.createInstance('headless-host', audioContext);
-      const audioNode = plugin.audioNode;
-      if (!audioNode) {
-        status.textContent = 'Erreur: audioNode non créé';
-        return;
-      }
+      // Load the WAM
+      const { default: WAM } = await import(SamplerPluginURL);
 
-      // Connect to destination so we can hear playback
-      audioNode.connect(audioContext.destination);
+     // Create a new instance of the plugin
+      // You can can optionnally give more options such as the initial state of the plugin
+      const wamInstance = await WAM.createInstance(hostGroupId, audioContext);
+
+      console.log('✓ Sampler instance created');
+      // Connecter à la sortie audio
+      wamInstance.audioNode.connect(audioContext.destination);
+      let audioNode = wamInstance.audioNode;
+
+
 
       status.textContent = 'Prêt. Utilisez les boutons ou le clavier pour jouer les pads.';
 
