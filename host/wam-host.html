@@ -74,6 +74,22 @@
       border-radius: 8px;
       border: 1px solid #334155;
     }
+    .midi-control {
+      margin-top: 16px;
+      padding: 16px;
+      background: rgba(30, 41, 59, 0.8);
+      border-radius: 8px;
+      border: 1px solid #334155;
+    }
+    select {
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid #334155;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-width: 250px;
+      margin: 5px;
+    }
   </style>
 </head>
 <body>
@@ -85,6 +101,24 @@
   </div>
   <div id="mount"></div>
   <div class="status" id="status">Initialisation...</div>
+
+  <div class="midi-control">
+    <h3 style="color: #60a5fa; margin-bottom: 12px;">🎹 Contrôle MIDI</h3>
+    <div style="display:flex; gap:8px; align-items:center; flex-wrap: wrap;">
+      <label style="color: #cbd5e1;">Device MIDI:</label>
+      <select id="midi-device-select">
+        <option value="">Aucun device MIDI détecté</option>
+      </select>
+      <button id="btn-refresh-midi">🔄 Rafraîchir</button>
+      <label style="margin-left: 16px; color: #cbd5e1;">
+        <input type="checkbox" id="midi-enabled" style="margin-right:4px;" />
+        Activer MIDI
+      </label>
+    </div>
+    <small style="color: #94a3b8; display: block; margin-top: 8px;">
+      Le MIDI est mappé sur 16 pads (notes 36-51, C1-D#2). Changez de device pour utiliser un autre contrôleur.
+    </small>
+  </div>
 
   <div class="plugin-controls">
     <h3 style="color: #60a5fa; margin-bottom: 12px;">Charger un plugin WAM tiers</h3>
