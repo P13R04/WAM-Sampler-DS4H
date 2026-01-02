@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tests d'intégration WAM Sampler</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #1e1e1e;
+      color: #d4d4d4;
+    }
+    h1 {
+      color: #4ec9b0;
+      border-bottom: 2px solid #4ec9b0;
+      padding-bottom: 10px;
+    }
+    h2 {
+      color: #569cd6;
+      margin-top: 30px;
+    }
+    .test-section {
+      background: #252526;
+      border: 1px solid #3e3e42;
+      border-radius: 5px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+    .test-controls {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    button {
+      background: #0e639c;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: #1177bb;
+    }
+    button:disabled {
+      background: #555;
+      cursor: not-allowed;
+    }
+    button.secondary {
+      background: #3a3a3c;
+    }
+    button.secondary:hover {
+      background: #4a4a4c;
+    }
+    button.danger {
+      background: #c72e2e;
+    }
+    button.danger:hover {
+      background: #d74444;
+    }
+    #console {
+      background: #1e1e1e;
+      border: 1px solid #3e3e42;
+      border-radius: 3px;
+      padding: 15px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      height: 400px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      margin-top: 10px;
+    }
+    .status {
+      display: inline-block;
+      padding: 5px 10px;
+      border-radius: 3px;
+      margin-left: 10px;
+      font-size: 12px;
+    }
+    .status.online {
+      background: #0e7d0e;
+      color: white;
+    }
+    .status.offline {
+      background: #c72e2e;
+      color: white;
+    }
+    .status.testing {
+      background: #f39c12;
+      color: white;
+    }
+    .checklist {
+      background: #2d2d30;
+      padding: 15px;
+      border-radius: 3px;
+      margin: 10px 0;
+    }
+    .checklist label {
+      display: block;
+      padding: 8px 0;
+      cursor: pointer;
+      user-select: none;
+    }
+    .checklist input[type="checkbox"] {
+      margin-right: 10px;
+    }
+    .info-box {
+      background: #264f78;
+      border-left: 4px solid #569cd6;
+      padding: 15px;
+      margin: 15px 0;
+      border-radius: 3px;
+    }
+    .warning-box {
+      background: #5a3e1b;
+      border-left: 4px solid #f39c12;
+      padding: 15px;
+      margin: 15px 0;
+      border-radius: 3px;
+    }
+    .success-box {
+      background: #1e4620;
+      border-left: 4px solid #4ec9b0;
+      padding: 15px;
+      margin: 15px 0;
+      border-radius: 3px;
+    }
+    pre {
+      background: #1e1e1e;
+      padding: 10px;
+      border-radius: 3px;
+      overflow-x: auto;
+    }
+  </style>
+</head>
+<body>
+  <h1>🧪 Tests d'intégration WAM Sampler</h1>
+  
+  <div class="info-box">
+    <strong>ℹ️ Instructions:</strong>
+    <ol>
+      <li>Assurez-vous que le serveur est démarré: <code>cd server && npm start</code></li>
+      <li>Lancez les tests automatiques avec le bouton ci-dessous</li>
+      <li>Suivez la checklist manuelle pour les tests UI</li>
+    </ol>
+  </div>
+
+  <div class="test-section">
+    <h2>🤖 Tests automatiques</h2>
+    <div class="test-controls">
+      <button id="btn-run-tests" onclick="runAllTests()">▶️ Lancer tous les tests</button>
+      <button class="secondary" onclick="checkServerStatus()">🔍 Vérifier serveur</button>
+      <button class="secondary" onclick="clearConsole()">🗑️ Effacer console</button>
+      <span id="server-status"></span>
+    </div>
+    <div id="console"></div>
+  </div>
+
+  <div class="test-section">
+    <h2>👤 Tests manuels (checklist)</h2>
+    <div class="warning-box">
+      <strong>⚠️ Prérequis:</strong> Ouvrez <a href="../host/wam-host.html" target="_blank" style="color: #4ec9b0;">wam-host.html</a> dans un autre onglet pour effectuer ces tests.
+    </div>
+    
+    <div class="checklist">
+      <h3>Workflow de base</h3>
+      <label><input type="checkbox"> Charger le plugin WAM dans wam-host.html</label>
+      <label><input type="checkbox"> Vérifier que l'interface s'affiche correctement</label>
+      <label><input type="checkbox"> Vérifier que le menu déroulant "Presets" est visible (en haut)</label>
+      <label><input type="checkbox"> Vérifier que les presets Factory et User sont séparés</label>
+    </div>
+
+    <div class="checklist">
+      <h3>Gestion des presets</h3>
+      <label><input type="checkbox"> Créer un nouveau preset: modifier volume master, sauvegarder</label>
+      <label><input type="checkbox"> Recharger la page et vérifier que le preset est toujours là</label>
+      <label><input type="checkbox"> Charger le preset et vérifier que le volume est correct</label>
+      <label><input type="checkbox"> Modifier le preset et sauvegarder à nouveau</label>
+      <label><input type="checkbox"> Supprimer le preset (via onglet State → "Log current state" → vérifier dans localStorage)</label>
+    </div>
+
+    <div class="checklist">
+      <h3>Enregistrement audio</h3>
+      <label><input type="checkbox"> Ouvrir l'onglet "Create"</label>
+      <label><input type="checkbox"> Cliquer sur "Start Recording" (autoriser microphone)</label>
+      <label><input type="checkbox"> Enregistrer quelques secondes de son</label>
+      <label><input type="checkbox"> Cliquer sur "Stop Recording"</label>
+      <label><input type="checkbox"> Vérifier que le waveform s'affiche</label>
+      <label><input type="checkbox"> Vérifier que les barres de trim bleues sont visibles</label>
+      <label><input type="checkbox"> Déplacer les barres de trim avec la souris</label>
+      <label><input type="checkbox"> Cliquer sur "Play Trimmed" pour prévisualiser</label>
+      <label><input type="checkbox"> Sélectionner un pad (0-15) et cliquer "Assign to Selected Pad"</label>
+      <label><input type="checkbox"> Jouer le pad (clic ou MIDI) et vérifier que seule la partie trimée joue</label>
+    </div>
+
+    <div class="checklist">
+      <h3>Chargement de samples</h3>
+      <label><input type="checkbox"> Dans l'onglet "Create", cliquer "Load Sample from File"</label>
+      <label><input type="checkbox"> Sélectionner un fichier audio (.wav, .mp3, .ogg)</label>
+      <label><input type="checkbox"> Vérifier que le sample s'affiche sur le canvas principal</label>
+      <label><input type="checkbox"> Utiliser les barres de trim sur le sample chargé</label>
+      <label><input type="checkbox"> Assigner le sample trimé à un pad</label>
+      <label><input type="checkbox"> Sauvegarder comme preset</label>
+      <label><input type="checkbox"> Recharger et vérifier que le preset charge correctement le sample</label>
+    </div>
+
+    <div class="checklist">
+      <h3>Sélecteur MIDI</h3>
+      <label><input type="checkbox"> Connecter un contrôleur MIDI (ou utiliser un MIDI virtuel)</label>
+      <label><input type="checkbox"> Cliquer sur "Refresh MIDI Devices"</label>
+      <label><input type="checkbox"> Vérifier que le device apparaît dans le menu déroulant</label>
+      <label><input type="checkbox"> Sélectionner le device et cliquer "Apply MIDI Selection"</label>
+      <label><input type="checkbox"> Jouer des notes MIDI et vérifier que les pads répondent</label>
+    </div>
+
+    <div class="checklist">
+      <h3>Mode offline (localStorage fallback)</h3>
+      <label><input type="checkbox"> Arrêter le serveur (Ctrl+C dans le terminal)</label>
+      <label><input type="checkbox"> Rafraîchir wam-host.html</label>
+      <label><input type="checkbox"> Créer un nouveau preset</label>
+      <label><input type="checkbox"> Recharger et vérifier que le preset est toujours là (localStorage)</label>
+      <label><input type="checkbox"> Redémarrer le serveur</label>
+      <label><input type="checkbox"> Vérifier que le mode online reprend (presets serveur disponibles)</label>
+    </div>
+
+    <div class="checklist">
+      <h3>Export/Import d'état</h3>
+      <label><input type="checkbox"> Onglet "State" → "Export State" → fichier JSON téléchargé</label>
+      <label><input type="checkbox"> Ouvrir le JSON et vérifier la structure</label>
+      <label><input type="checkbox"> Modifier quelque chose dans l'interface</label>
+      <label><input type="checkbox"> "Import State" → charger le JSON exporté</label>
+      <label><input type="checkbox"> Vérifier que l'état est restauré</label>
+      <label><input type="checkbox"> "Log Current State" → vérifier la console du navigateur</label>
+    </div>
+  </div>
+
+  <div class="test-section">
+    <h2>📊 Résumé des tests</h2>
+    <div id="summary">
+      <p>Lancez les tests pour voir le résumé.</p>
+    </div>
+  </div>
+
+  <script type="module">
+    // Importer le module de tests
+    import { runTests as runPresetManagerTests } from './test-preset-manager.mjs';
+    
+    const consoleDiv = document.getElementById('console');
+    const originalLog = console.log;
+    const originalError = console.error;
+    
+    // Intercepter console.log pour afficher dans la page
+    console.log = function(...args) {
+      originalLog.apply(console, args);
+      const text = args.map(arg => 
+        typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+      ).join(' ');
+      consoleDiv.textContent += text + '\n';
+      consoleDiv.scrollTop = consoleDiv.scrollHeight;
+    };
+    
+    console.error = function(...args) {
+      originalError.apply(console, args);
+      const text = '❌ ' + args.map(arg => 
+        typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+      ).join(' ');
+      consoleDiv.textContent += text + '\n';
+      consoleDiv.scrollTop = consoleDiv.scrollHeight;
+    };
+    
+    window.clearConsole = function() {
+      consoleDiv.textContent = '';
+    };
+    
+    window.checkServerStatus = async function() {
+      try {
+        const response = await fetch('http://localhost:3000/api/health');
+        const data = await response.json();
+        const statusSpan = document.getElementById('server-status');
+        statusSpan.innerHTML = '<span class="status online">✅ Serveur en ligne</span>';
+        console.log('✅ Serveur connecté:', data);
+      } catch (error) {
+        const statusSpan = document.getElementById('server-status');
+        statusSpan.innerHTML = '<span class="status offline">❌ Serveur offline</span>';
+        console.error('❌ Serveur inaccessible:', error.message);
+      }
+    };
+    
+    window.runAllTests = async function() {
+      const btn = document.getElementById('btn-run-tests');
+      btn.disabled = true;
+      btn.textContent = '⏳ Tests en cours...';
+      const statusSpan = document.getElementById('server-status');
+      statusSpan.innerHTML = '<span class="status testing">🧪 Tests en cours...</span>';
+      
+      clearConsole();
+      
+      try {
+        const success = await runPresetManagerTests();
+        
+        // Mise à jour du résumé
+        const summary = document.getElementById('summary');
+        if (success) {
+          summary.innerHTML = `
+            <div class="success-box">
+              <h3>✅ Tous les tests automatiques sont passés!</h3>
+              <p>Continuez avec les tests manuels de la checklist ci-dessus.</p>
+            </div>
+          `;
+          statusSpan.innerHTML = '<span class="status online">✅ Tests réussis</span>';
+        } else {
+          summary.innerHTML = `
+            <div class="warning-box">
+              <h3>⚠️ Certains tests ont échoué</h3>
+              <p>Consultez la console ci-dessus pour les détails.</p>
+            </div>
+          `;
+          statusSpan.innerHTML = '<span class="status offline">❌ Tests échoués</span>';
+        }
+      } catch (error) {
+        console.error('Erreur lors des tests:', error);
+        const summary = document.getElementById('summary');
+        summary.innerHTML = `
+          <div class="warning-box">
+            <h3>❌ Erreur lors des tests</h3>
+            <p>${error.message}</p>
+          </div>
+        `;
+        statusSpan.innerHTML = '<span class="status offline">❌ Erreur</span>';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '▶️ Lancer tous les tests';
+      }
+    };
+    
+    // Vérifier le serveur au chargement
+    checkServerStatus();
+  </script>
+</body>
+</html>

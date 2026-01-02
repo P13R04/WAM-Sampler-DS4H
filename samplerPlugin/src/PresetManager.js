@@ -91,43 +91,7 @@ export default class PresetManager {
     return { name, state, samples };
   }
 
-  /**
-   * Charge un preset par nom
-   * @param {string} name - Nom du preset
-   * @returns {Promise<object|null>} {state, samples} ou null
-   */
-  async loadPreset(name) {
-    // Mode serveur REST
-    if (this.isOnline) {
-      try {
-        const res = await fetch(`${this.serverUrl}/api/presets`);
-        const presets = await res.json();
-        const preset = presets.find(p => p.name === name);
-        if (preset) {
-          return {
-            state: preset.parameters,
-            samples: preset.samples || []
-          };
-        }
-      } catch (e) {
-        console.warn('Fallback localStorage pour loadPreset:', e.message);
-        this.isOnline = false;
-      }
-    }
 
-    // Fallback localStorage
-    const raw = localStorage.getItem(this._key(name));
-    if (!raw) return null;
-    try {
-      const parsed = JSON.parse(raw);
-      return {
-        state: parsed.state || null,
-        samples: parsed.samples || []
-      };
-    } catch (_) {
-      return null;
-    }
-  }
 
   /**
    * Supprime un preset
@@ -185,6 +149,124 @@ export default class PresetManager {
     const raw = localStorage.getItem(this._listKey());
     if (!raw) return [];
     try { return JSON.parse(raw) || []; } catch (_) { return []; }
+  }
+
+  /**
+   * Liste des presets organisés par catégorie (Factory vs User)
+   * @returns {Promise<{factory: string[], user: string[]}>}
+   */
+  async listPresetsByCategory() {
+    const allPresets = await this.listPresets();
+    const factory = [];
+    const user = [];
+
+    // Identifier les presets factory (préfixe '[Factory]' ou stockés avec isFactory: true)
+    for (const name of allPresets) {
+      if (name.startsWith('[Factory]')) {
+        factory.push(name);
+      } else {
+        // Vérifier si le preset a le flag isFactory
+        try {
+          const preset = await this.loadPreset(name);
+          if (preset && preset.isFactory) {
+            factory.push(name);
+          } else {
+            user.push(name);
+          }
+        } catch (e) {
+          // En cas d'erreur, considérer comme user preset
+          user.push(name);
+        }
+      }
+    }
+
+    return { factory, user };
+  }
+
+  /**
+   * Charge un preset par nom
+   * @param {string} name - Nom du preset
+   * @returns {Promise<object|null>} {state, samples, isFactory} ou null
+   */
+  async loadPreset(name) {
+    // Mode serveur REST
+    if (this.isOnline) {
+      try {
+        const res = await fetch(`${this.serverUrl}/api/presets`);
+        const presets = await res.json();
+        const preset = presets.find(p => p.name === name);
+        if (preset) {
+          return {
+            state: preset.parameters,
+            samples: preset.samples || [],
+            isFactory: preset.isFactory || false
+          };
+        }
+      } catch (e) {
+        console.warn('Fallback localStorage pour loadPreset:', e.message);
+        this.isOnline = false;
+      }
+    }
+
+    // Fallback localStorage
+    const raw = localStorage.getItem(this._key(name));
+    if (!raw) return null;
+    try {
+      const parsed = JSON.parse(raw);
+      return {
+        state: parsed.state || null,
+        samples: parsed.samples || [],
+        isFactory: parsed.isFactory || false
+      };
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /**
+   * Sauvegarde un preset factory (utilisé pour l'initialisation)
+   * @param {string} name - Nom du preset
+   * @param {object} state - État du sampler
+   * @param {Array} samples - Liste des samples
+   * @returns {Promise<object>}
+   */
+  async saveFactoryPreset(name, state, samples = []) {
+    // Ajouter le préfixe [Factory] si pas déjà présent
+    const factoryName = name.startsWith('[Factory]') ? name : `[Factory] ${name}`;
+    
+    // Sauvegarder avec flag isFactory
+    if (this.isOnline) {
+      try {
+        const res = await fetch(`${this.serverUrl}/api/presets`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            name: factoryName, 
+            parameters: state, 
+            samples,
+            isFactory: true
+          })
+        });
+        if (res.ok) return await res.json();
+      } catch (e) {
+        console.warn('Fallback localStorage pour saveFactoryPreset:', e.message);
+        this.isOnline = false;
+      }
+    }
+
+    // Fallback localStorage
+    localStorage.setItem(this._key(factoryName), JSON.stringify({ 
+      version: 1, 
+      state, 
+      samples,
+      isFactory: true
+    }));
+    const list = await this.listPresets();
+    if (!list.includes(factoryName)) {
+      list.push(factoryName);
+      localStorage.setItem(this._listKey(), JSON.stringify(list));
+    }
+    return { name: factoryName, state, samples, isFactory: true };
   }
 
   /**

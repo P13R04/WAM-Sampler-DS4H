@@ -10,6 +10,19 @@ server/data/samples/*
 !server/data/presets/.gitkeep
 !server/data/samples/.gitkeep
 
+# Documentation interne (plans, synthèses, guides temporaires)
+BONNES_PRATIQUES.md
+GUIDE_SERVEUR.md
+IMPLEMENTATION_*.md
+PLAN_ACTION.md
+ROADMAP.md
+SOLUTION_FINALE.md
+SYNTHESE_*.md
+TACHE_*.md
+TACHES_*.md
+TESTING_WAM.md
+README_specs.md
+
 # Logs
 *.log
 npm-debug.log*

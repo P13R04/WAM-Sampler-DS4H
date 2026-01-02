@@ -143,6 +143,43 @@ const styles = `
   min-height: 40px;
 }
 
+.preset-menu {
+  background: rgba(15, 23, 42, 0.9);
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #334155;
+  margin-bottom: 12px;
+}
+
+.preset-menu h3 {
+  margin: 0 0 8px 0;
+  color: #60a5fa;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.preset-menu select {
+  width: 100%;
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid #334155;
+  background: #0f172a;
+  color: #e2e8f0;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.preset-menu-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.preset-menu button {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
 .effects-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -432,6 +469,18 @@ export default class SamplerElement extends HTMLElement {
             <h2>Sampler 16</h2>
           </div>
 
+          <!-- Menu de Presets (déplacé du state) -->
+          <div class="preset-menu">
+            <h3>🎵 Presets</h3>
+            <select id="preset-select" title="Sélectionnez un preset">
+              <option value="">-- Select Preset --</option>
+            </select>
+            <div class="preset-menu-actions">
+              <button id="btn-load-preset" title="Charger le preset sélectionné">📂 Load</button>
+              <button id="btn-save-preset" title="Sauvegarder l'état actuel">💾 Save</button>
+            </div>
+          </div>
+
           <div class="bank-buttons" role="tablist">
             <button class="bank-btn" data-bank="A">A</button>
             <button class="bank-btn" data-bank="B">B</button>
@@ -476,42 +525,69 @@ export default class SamplerElement extends HTMLElement {
 
           <div class="zone-container">
             <div id="zone-create" class="zone" style="display:none">
-              <div class="create-controls">
-                <label>Preset name</label>
-                <input id="preset-name" placeholder="Preset name" />
+              <h3 style="margin:0 0 12px 0;color:#e2e8f0;font-size:14px">🎵 Charger Sample sur le Pad Sélectionné</h3>
+              <div class="file-controls" style="margin-bottom:16px;padding:12px;background:#0f172a;border-radius:6px;border:1px solid #334155">
+                <button id="btn-load" style="padding:8px 12px;background:#3b82f6;color:white;border:none;border-radius:4px;cursor:pointer;margin-right:8px">📁 Charger Sample</button>
+                <button id="btn-clear" style="padding:8px 12px;background:#ef4444;color:white;border:none;border-radius:4px;cursor:pointer;margin-right:8px">🗑️ Vider Pad</button>
+                <button id="btn-clear-all" style="padding:8px 12px;background:#dc2626;color:white;border:none;border-radius:4px;cursor:pointer">🧹 Vider Tout</button>
+                <input type="file" id="file-input" accept="audio/*" style="display:none" />
               </div>
-              <div style="margin-top:8px">
-                <button id="btn-import-create">📥 Importer son</button>
-                <input type="file" id="create-file-input" accept="audio/*" />
-                <button id="btn-slice-create">✂️ Slicer (détecter silences)</button>
-                <button id="btn-create-instrument">🎹 Créer Instrument</button>
+              
+              <h3 style="margin:16px 0 12px 0;color:#e2e8f0;font-size:14px">✂️ Couper le Sample</h3>
+              <div style="padding:12px;background:#0f172a;border-radius:6px;border:1px solid #334155;margin-bottom:16px">
+                <p style="font-size:11px;color:#94a3b8;margin:0 0 8px 0">💡 Glissez les barres bleues sur le canvas pour ajuster le trim</p>
+                <button id="btn-apply-trim" style="padding:8px 12px;background:#10b981;color:white;border:none;border-radius:4px;cursor:pointer;font-weight:bold">✂️ Couper et Appliquer le Trim</button>
               </div>
-              <div style="margin-top:8px">
-                <label>Instrument scale</label>
-                <select id="instrument-scale">
-                  <option value="chromatic">Chromatique</option>
-                  <option value="whole">Par tons entiers</option>
-                  <option value="major">Majeure</option>
-                  <option value="minor">Mineure</option>
-                </select>
-                <label style="margin-left:8px">Root MIDI</label>
-                <input id="instrument-root" type="number" min="0" max="127" value="60" style="width:60px" />
+              
+              <h3 style="margin:16px 0 12px 0;color:#e2e8f0;font-size:14px">🎹 Créer Instrument (Avancé)</h3>
+              <div style="padding:12px;background:#0f172a;border-radius:6px;border:1px solid #334155">
+                <button id="btn-import-create" style="padding:8px 12px;background:#8b5cf6;color:white;border:none;border-radius:4px;cursor:pointer;margin-bottom:8px">📥 Importer Audio Long</button>
+                <input type="file" id="create-file-input" accept="audio/*" style="display:none" />
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+                  <div>
+                    <label style="display:block;font-size:11px;color:#94a3b8;margin-bottom:4px">Gamme</label>
+                    <select id="instrument-scale" style="width:100%;padding:6px;border-radius:4px;border:1px solid #334155;background:#0b1224;color:#e2e8f0">
+                      <option value="chromatic">Chromatique</option>
+                      <option value="whole">Par tons entiers</option>
+                      <option value="major">Majeure</option>
+                      <option value="minor">Mineure</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style="display:block;font-size:11px;color:#94a3b8;margin-bottom:4px">Note MIDI de base</label>
+                    <input id="instrument-root" type="number" min="0" max="127" value="60" style="width:100%;padding:6px;border-radius:4px;border:1px solid #334155;background:#0b1224;color:#e2e8f0" />
+                  </div>
+                </div>
+                <button id="btn-slice-create" style="padding:8px 12px;background:#f59e0b;color:white;border:none;border-radius:4px;cursor:pointer;margin-top:8px;margin-right:8px">✂️ Slicer (silences)</button>
+                <button id="btn-create-instrument" style="padding:8px 12px;background:#ec4899;color:white;border:none;border-radius:4px;cursor:pointer;margin-top:8px">🎹 Créer Instrument</button>
               </div>
             </div>
             <div id="zone-state" class="zone" style="display:none">
-              <div class="preset-controls">
-                <button id="btn-save-preset">Save</button>
-                <select id="preset-select"></select>
-                <button id="btn-load-preset">Load</button>
-                <button id="btn-delete-preset">Delete</button>
+              <h3 style="margin:0 0 16px 0;color:#e2e8f0;font-size:14px">🔧 Test State API</h3>
+              
+              <div style="padding:16px;background:#0f172a;border-radius:6px;border:1px solid #334155;margin-bottom:16px">
+                <h4 style="margin:0 0 12px 0;color:#e2e8f0;font-size:13px">📤 Exporter l'état</h4>
+                <p style="margin:0 0 12px 0;font-size:12px;color:#94a3b8;line-height:1.5">
+                  Exporte l'état complet du plugin (samples, trims, effets, presets) dans un fichier JSON.
+                </p>
+                <button id="btn-export-state" style="padding:10px 16px;background:#3b82f6;color:white;border:none;border-radius:4px;cursor:pointer;font-weight:500">📤 Exporter State</button>
               </div>
-              <div class="file-controls" style="margin-top:8px">
-                <button id="btn-load">📁 Charger</button>
-                <input type="file" id="file-input" accept="audio/*" />
+              
+              <div style="padding:16px;background:#0f172a;border-radius:6px;border:1px solid #334155;margin-bottom:16px">
+                <h4 style="margin:0 0 12px 0;color:#e2e8f0;font-size:13px">📥 Importer un état</h4>
+                <p style="margin:0 0 12px 0;font-size:12px;color:#94a3b8;line-height:1.5">
+                  Charge un fichier JSON d'état pour restaurer tous les paramètres du plugin.
+                </p>
+                <button id="btn-import-state" style="padding:10px 16px;background:#8b5cf6;color:white;border:none;border-radius:4px;cursor:pointer;font-weight:500">📥 Importer State</button>
+                <input type="file" id="state-file-input" accept=".json" style="display:none" />
               </div>
-              <div class="clear-controls" style="margin-top:8px">
-                <button id="btn-clear">🗑️ Vider</button>
-                <button id="btn-clear-all">🧹 Vider tout</button>
+              
+              <div style="padding:16px;background:#0f172a;border-radius:6px;border:1px solid #334155">
+                <h4 style="margin:0 0 12px 0;color:#e2e8f0;font-size:13px">🔍 Afficher l'état actuel</h4>
+                <p style="margin:0 0 12px 0;font-size:12px;color:#94a3b8;line-height:1.5">
+                  Affiche l'état JSON dans la console pour débogage.
+                </p>
+                <button id="btn-log-state" style="padding:10px 16px;background:#10b981;color:white;border:none;border-radius:4px;cursor:pointer;font-weight:500">🔍 Log State</button>
               </div>
             </div>
             <div id="zone-params" class="zone" style="display:none">
@@ -590,16 +666,25 @@ export default class SamplerElement extends HTMLElement {
             </div>
             <div id="zone-rec" class="zone" style="display:none">
               <div class="rec-controls">
-                <button id="btn-rec">Rec</button>
-                <button id="btn-stop">Stop</button>
-                <button id="btn-trim-apply">Trim</button>
+                <button id="btn-rec">🔴 REC</button>
+                <button id="btn-stop" disabled>⏹️ STOP</button>
+                <button id="btn-play-rec" disabled>▶️ PLAY</button>
+                <span id="rec-timer" style="margin-left:12px;font-family:monospace;font-size:14px;color:#60a5fa">00:00.0</span>
+                <span id="rec-status" style="margin-left:12px;font-size:12px;color:#94a3b8">Prêt</span>
               </div>
               <canvas id="rec-canvas" width="600" height="80" style="width:100%;height:80px;border-radius:6px;background:#071021;border:1px solid #334155;margin-top:8px"></canvas>
-              <div style="margin-top:8px">
-                <button id="btn-drag-to-pad">Drag → Pad</button>
-                <div id="rec-preview" style="display:inline-block;margin-left:8px"></div>
-                <button id="btn-download-rec" style="margin-left:8px">⬇️ Télécharger</button>
-                <button id="btn-load-into-create" style="margin-left:8px">➡️ Charger dans Create</button>
+              
+              <!-- Panel de résultat d'enregistrement -->
+              <div id="rec-result-panel" style="display:none;margin-top:12px;padding:12px;background:#0f172a;border-radius:6px;border:1px solid #334155">
+                <h4 style="margin:0 0 8px 0;color:#e2e8f0;font-size:14px">✓ Enregistrement terminé</h4>
+                <audio id="rec-audio-preview" controls style="width:100%;margin-bottom:12px"></audio>
+                
+                <p style="font-size:11px;color:#94a3b8;margin:8px 0">💡 Glissez les barres bleues sur le canvas pour ajuster le trim</p>
+                
+                <div style="display:flex;gap:8px;align-items:center">
+                  <button id="btn-assign-to-selected" style="padding:8px 12px;background:#3b82f6;color:white;border:none;border-radius:4px;cursor:pointer;font-weight:bold">📥 Assigner au pad sélectionné</button>
+                  <button id="btn-download-rec" style="padding:8px 12px;background:#10b981;color:white;border:none;border-radius:4px;cursor:pointer">⬇️ Télécharger</button>
+                </div>
               </div>
             </div>
           </div>
@@ -720,6 +805,17 @@ export default class SamplerElement extends HTMLElement {
     this._trimRight = this.shadowRoot.getElementById('trim-right');
     this._trimLeftVal = this.shadowRoot.getElementById('trim-left-val');
     this._trimRightVal = this.shadowRoot.getElementById('trim-right-val');
+    
+    // Setup interactions de trim sur le canvas principal
+    this._mainTrimDragging = null; // 'start' | 'end' | null
+    if (this._waveCanvas) {
+      this._waveCanvas.addEventListener('mousedown', (e) => this._onMainCanvasMouseDown(e));
+      this._waveCanvas.addEventListener('mousemove', (e) => this._onMainCanvasMouseMove(e));
+      this._waveCanvas.addEventListener('mouseup', () => this._onMainCanvasMouseUp());
+      this._waveCanvas.addEventListener('mouseleave', () => this._onMainCanvasMouseUp());
+      this._waveCanvas.style.cursor = 'pointer';
+    }
+    
     this._zoneContainer = this.shadowRoot.querySelector('.zone-container');
     this._currentZone = null;
     this._lastPlayedBuffer = null;
@@ -736,6 +832,40 @@ export default class SamplerElement extends HTMLElement {
     // trimbars
     if (this._trimLeft) this._trimLeft.oninput = () => this._onTrimChange();
     if (this._trimRight) this._trimRight.oninput = () => this._onTrimChange();
+    
+    // Bouton pour couper/appliquer le trim
+    this._btnApplyTrim = this.shadowRoot.getElementById('btn-apply-trim');
+    if (this._btnApplyTrim) this._btnApplyTrim.onclick = () => this._applyTrimToCurrentPad();
+    
+    // State tab bindings
+    this._btnExportState = this.shadowRoot.getElementById('btn-export-state');
+    this._btnImportState = this.shadowRoot.getElementById('btn-import-state');
+    this._btnLogState = this.shadowRoot.getElementById('btn-log-state');
+    this._stateFileInput = this.shadowRoot.getElementById('state-file-input');
+    if (this._btnExportState) this._btnExportState.onclick = () => this._exportState();
+    if (this._btnImportState) this._btnImportState.onclick = () => { if (this._stateFileInput) this._stateFileInput.click(); };
+    if (this._btnLogState) this._btnLogState.onclick = () => this._logState();
+    if (this._stateFileInput) this._stateFileInput.onchange = (e) => { const f = e.target.files?.[0]; if (f) this._importState(f); e.target.value = ''; };
+    
+    // State tab bindings
+    this._btnExportState = this.shadowRoot.getElementById('btn-export-state');
+    this._btnImportState = this.shadowRoot.getElementById('btn-import-state');
+    this._stateFileInput = this.shadowRoot.getElementById('state-file-input');
+    if (this._btnExportState) this._btnExportState.onclick = () => this._exportState();
+    if (this._btnImportState) this._btnImportState.onclick = () => { if (this._stateFileInput) this._stateFileInput.click(); };
+    if (this._stateFileInput) this._stateFileInput.onchange = (e) => { const f = e.target.files?.[0]; if (f) this._importState(f); e.target.value = ''; };
+    
+    // Bouton pour couper/appliquer le trim
+    this._btnApplyTrim = this.shadowRoot.getElementById('btn-apply-trim');
+    if (this._btnApplyTrim) this._btnApplyTrim.onclick = () => this._applyTrimToCurrentPad();
+    
+    // State tab bindings
+    this._btnExportState = this.shadowRoot.getElementById('btn-export-state');
+    this._btnImportState = this.shadowRoot.getElementById('btn-import-state');
+    this._stateFileInput = this.shadowRoot.getElementById('state-file-input');
+    if (this._btnExportState) this._btnExportState.onclick = () => this._exportState();
+    if (this._btnImportState) this._btnImportState.onclick = () => { if (this._stateFileInput) this._stateFileInput.click(); };
+    if (this._stateFileInput) this._stateFileInput.onchange = (e) => { const f = e.target.files?.[0]; if (f) this._importState(f); e.target.value = ''; };
 
     // draw initial empty waveform
     if (this._waveCtx) this._clearWaveCanvas();
@@ -750,6 +880,25 @@ export default class SamplerElement extends HTMLElement {
       b.onclick = (e) => this._switchBank(e.target.dataset.bank);
     });
 
+    // Preset input name (nouveau champ dans le menu principal)
+    this._presetNameInput = this.shadowRoot.getElementById('preset-name-input');
+    if (!this._presetNameInput) {
+      // Créer dynamiquement le champ si pas présent
+      const presetMenu = this.shadowRoot.querySelector('.preset-menu');
+      if (presetMenu) {
+        const input = document.createElement('input');
+        input.id = 'preset-name-input';
+        input.type = 'text';
+        input.placeholder = 'Nom du preset';
+        input.style.cssText = 'width:100%;padding:6px;border-radius:4px;border:1px solid #334155;background:#0f172a;color:#e2e8f0;margin-bottom:8px;font-size:12px';
+        const select = presetMenu.querySelector('select');
+        if (select) {
+          presetMenu.insertBefore(input, select);
+          this._presetNameInput = input;
+        }
+      }
+    }
+
     // Params: device select and refresh
     this._deviceSelect = this.shadowRoot.getElementById('device-select');
     this._refreshDevicesBtn = this.shadowRoot.getElementById('btn-refresh-devices');
@@ -760,18 +909,74 @@ export default class SamplerElement extends HTMLElement {
     // Recording controls
     this._btnRec = this.shadowRoot.getElementById('btn-rec');
     this._btnStop = this.shadowRoot.getElementById('btn-stop');
+    this._btnPlayRec = this.shadowRoot.getElementById('btn-play-rec');
     this._recCanvas = this.shadowRoot.getElementById('rec-canvas');
-    this._btnDragToPad = this.shadowRoot.getElementById('btn-drag-to-pad');
-    this._recPreview = this.shadowRoot.getElementById('rec-preview');
+    this._recTimer = this.shadowRoot.getElementById('rec-timer');
+    this._recStatus = this.shadowRoot.getElementById('rec-status');
+    this._recResultPanel = this.shadowRoot.getElementById('rec-result-panel');
+    this._recAudioPreview = this.shadowRoot.getElementById('rec-audio-preview');
+    this._recStartTime = 0;
+    this._recTimerInterval = null;
+    
     if (this._btnRec) this._btnRec.onclick = () => this._startRecording();
     if (this._btnStop) this._btnStop.onclick = () => this._stopRecording();
-    if (this._btnDragToPad) this._btnDragToPad.onclick = () => {
-      if (this._lastRecBlobUrl) this._loadBlobUrlToPad(this._lastRecBlobUrl, this._selectedPad);
+    if (this._btnPlayRec) this._btnPlayRec.onclick = () => this._playRecording();
+    
+    // Nouveaux boutons d'assignation rapide
+    const btnAssignToSelected = this.shadowRoot.getElementById('btn-assign-to-selected');
+    const btnAssignToNextEmpty = this.shadowRoot.getElementById('btn-assign-to-next-empty');
+    const btnDiscardRec = this.shadowRoot.getElementById('btn-discard-rec');
+    
+    if (btnAssignToSelected) btnAssignToSelected.onclick = () => {
+      if (this._lastRecBlobUrl) {
+        this._loadBlobUrlToPad(this._lastRecBlobUrl, this._selectedPad);
+        this._hideRecResult();
+        this._setStatus(`✓ Sample assigné au pad ${this._selectedPad + 1}`);
+      }
     };
+    
+    if (btnAssignToNextEmpty) btnAssignToNextEmpty.onclick = () => {
+      if (this._lastRecBlobUrl) {
+        const emptyPad = this._findNextEmptyPad();
+        if (emptyPad >= 0) {
+          this._loadBlobUrlToPad(this._lastRecBlobUrl, emptyPad);
+          this._selectPad(emptyPad);
+          this._hideRecResult();
+          this._setStatus(`✓ Sample assigné au pad ${emptyPad + 1}`);
+        } else {
+          this._setStatus('⚠️ Aucun pad vide disponible');
+        }
+      }
+    };
+    
+    if (btnDiscardRec) btnDiscardRec.onclick = () => {
+      if (this._lastRecBlobUrl) {
+        URL.revokeObjectURL(this._lastRecBlobUrl);
+        this._lastRecBlobUrl = null;
+      }
+      this._hideRecResult();
+      this._setStatus('🗑️ Enregistrement annulé');
+    };
+    
     this._btnDownloadRec = this.shadowRoot.getElementById('btn-download-rec');
-    this._btnLoadIntoCreate = this.shadowRoot.getElementById('btn-load-into-create');
+    this._btnAssignToSelected = this.shadowRoot.getElementById('btn-assign-to-selected');
+    
     if (this._btnDownloadRec) this._btnDownloadRec.onclick = () => this._downloadRecording();
-    if (this._btnLoadIntoCreate) this._btnLoadIntoCreate.onclick = () => this._loadRecordingIntoCreate();
+    if (this._btnAssignToSelected) this._btnAssignToSelected.onclick = () => this._assignRecordingToSelectedPad();
+    
+    // Trim bars pour le canvas d'enregistrement (valeurs par défaut)
+    this._recTrimStart = 0;
+    this._recTrimEnd = 1;
+    this._recTrimDragging = null; // 'start' | 'end' | null
+    
+    // Setup des événements pour les trim bars sur le canvas d'enregistrement
+    if (this._recCanvas) {
+      this._recCanvas.addEventListener('mousedown', (e) => this._onRecCanvasMouseDown(e));
+      this._recCanvas.addEventListener('mousemove', (e) => this._onRecCanvasMouseMove(e));
+      this._recCanvas.addEventListener('mouseup', () => this._onRecCanvasMouseUp());
+      this._recCanvas.addEventListener('mouseleave', () => this._onRecCanvasMouseUp());
+      this._recCanvas.style.cursor = 'pointer';
+    }
 
     // Create panel bindings
     this._createFileInput = this.shadowRoot.getElementById('create-file-input');
@@ -831,6 +1036,13 @@ export default class SamplerElement extends HTMLElement {
     };
 
     if (this._btnFsSearch) this._btnFsSearch.onclick = () => this._onFreesoundSearch();
+
+    // Initialiser les presets factory si nécessaire
+    if (this._presetMgr) {
+      this._initializeFactoryPresets().catch(e => {
+        console.warn('Failed to initialize factory presets:', e);
+      });
+    }
   }
 
   /**
@@ -1354,6 +1566,10 @@ export default class SamplerElement extends HTMLElement {
   async _startRecording() {
     try {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error('getUserMedia not supported');
+      
+      // Cacher le panel de résultat précédent
+      this._hideRecResult();
+      
       const deviceId = this._deviceSelect?.value;
       const constraints = { audio: deviceId ? { deviceId: { exact: deviceId } } : true };
       this._mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -1374,14 +1590,29 @@ export default class SamplerElement extends HTMLElement {
         this._recBlob = new Blob(this._recChunks, { type: this._recChunks[0]?.type || 'audio/webm' });
         if (this._lastRecBlobUrl) URL.revokeObjectURL(this._lastRecBlobUrl);
         this._lastRecBlobUrl = URL.createObjectURL(this._recBlob);
-        this._createRecPreviewElement(this._lastRecBlobUrl);
+        this._showRecResult(this._lastRecBlobUrl);
       };
       this._mediaRecorder.start();
+      
+      // UI updates
+      if (this._btnRec) this._btnRec.disabled = true;
+      if (this._btnStop) this._btnStop.disabled = false;
+      if (this._btnPlayRec) this._btnPlayRec.disabled = true; // Désactiver le bouton play pendant l'enregistrement
+      if (this._recStatus) this._recStatus.textContent = '🔴 Enregistrement...';
+      
+      // Start timer
+      this._recStartTime = Date.now();
+      this._updateRecTimer();
+      this._recTimerInterval = setInterval(() => this._updateRecTimer(), 100);
+      
       this._drawRecAnalyser();
-      this._setStatus('Recording...');
+      this._setStatus('🎙️ Enregistrement en cours...');
     } catch (e) {
       console.error('startRecording failed', e);
-      this._setStatus('✗ Recording failed');
+      this._setStatus('✗ Erreur enregistrement: ' + e.message);
+      if (this._btnRec) this._btnRec.disabled = false;
+      if (this._btnStop) this._btnStop.disabled = true;
+      if (this._recStatus) this._recStatus.textContent = 'Erreur';
     }
   }
 
@@ -1417,6 +1648,10 @@ export default class SamplerElement extends HTMLElement {
     try {
       if (this._mediaRecorder && this._mediaRecorder.state !== 'inactive') this._mediaRecorder.stop();
       if (this._recAnimationId) cancelAnimationFrame(this._recAnimationId);
+      if (this._recTimerInterval) {
+        clearInterval(this._recTimerInterval);
+        this._recTimerInterval = null;
+      }
       if (this._recSource && this._recAnalyser) {
         try { this._recSource.disconnect(); this._recAnalyser.disconnect(); } catch (e) {}
       }
@@ -1424,27 +1659,241 @@ export default class SamplerElement extends HTMLElement {
         this._mediaStream.getTracks().forEach(t => t.stop());
         this._mediaStream = null;
       }
-      this._setStatus('Recording stopped');
+      
+      // UI updates
+      if (this._btnRec) this._btnRec.disabled = false;
+      if (this._btnStop) this._btnStop.disabled = true;
+      if (this._btnPlayRec) this._btnPlayRec.disabled = false; // Activer le bouton play après l'enregistrement
+      if (this._recStatus) this._recStatus.textContent = 'Prêt';
+      
+      this._setStatus('⏹️ Enregistrement arrêté');
     } catch (e) {
       console.warn('stopRecording failed', e);
+      if (this._btnRec) this._btnRec.disabled = false;
+      if (this._btnStop) this._btnStop.disabled = true;
     }
   }
 
+  async _playRecording() {
+    // Jouer uniquement la partie trimée de l'enregistrement
+    if (!this._recFullAudioBuffer || !this.plugin?.audioContext) {
+      // Fallback: jouer l'audio complet si pas de buffer
+      if (this._recAudioPreview && this._recAudioPreview.src) {
+        this._recAudioPreview.currentTime = this._recTrimStart * (this._recAudioPreview.duration || 0);
+        this._recAudioPreview.play();
+        const trimmedDuration = (this._recTrimEnd - this._recTrimStart) * (this._recAudioPreview.duration || 0);
+        setTimeout(() => {
+          if (this._recAudioPreview) this._recAudioPreview.pause();
+        }, trimmedDuration * 1000);
+        this._setStatus('▶️ Lecture de la partie trimée...');
+        return;
+      }
+      this._setStatus('✗ Aucun enregistrement à jouer');
+      return;
+    }
+
+    try {
+      // Créer un buffer source pour jouer uniquement la partie trimée
+      const ctx = this.plugin.audioContext;
+      const buffer = this._recFullAudioBuffer;
+      const startTime = this._recTrimStart * buffer.duration;
+      const endTime = this._recTrimEnd * buffer.duration;
+      const duration = endTime - startTime;
+
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(ctx.destination);
+      source.start(0, startTime, duration);
+      
+      this._setStatus(`▶️ Lecture trimée: ${Math.round(this._recTrimStart * 100)}% à ${Math.round(this._recTrimEnd * 100)}%`);
+    } catch (e) {
+      console.warn('playRecording failed', e);
+      this._setStatus('✗ Erreur lecture');
+    }
+  }
+
+  _updateRecTimer() {
+    if (!this._recTimer || !this._recStartTime) return;
+    const elapsed = (Date.now() - this._recStartTime) / 1000;
+    const minutes = Math.floor(elapsed / 60);
+    const seconds = Math.floor(elapsed % 60);
+    const tenths = Math.floor((elapsed % 1) * 10);
+    this._recTimer.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${tenths}`;
+  }
+
+  async _showRecResult(blobUrl) {
+    if (!this._recResultPanel || !this._recAudioPreview) return;
+    
+    // Afficher le panel de résultat
+    this._recResultPanel.style.display = 'block';
+    
+    // Configurer l'audio preview
+    this._recAudioPreview.src = blobUrl;
+    
+    // Réinitialiser les trim bars
+    this._recTrimStart = 0;
+    this._recTrimEnd = 1;
+    
+    // Décoder l'audio pour afficher la waveform avec trim bars ET pour le playback trimé
+    try {
+      const resp = await fetch(blobUrl);
+      const arrayBuffer = await resp.arrayBuffer();
+      const audioBuffer = await this.plugin.audioContext.decodeAudioData(arrayBuffer);
+      this._recWaveformData = this._computeWaveformSummary(audioBuffer, 512);
+      this._recFullAudioBuffer = audioBuffer; // Stocker pour le playback
+      this._drawRecWaveformWithTrims();
+    } catch (e) {
+      console.warn('Failed to decode recording for waveform', e);
+    }
+    
+    // Scroll vers le résultat
+    this._recResultPanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    
+    this._setStatus('✓ Enregistrement terminé - Glissez les barres bleues pour ajuster le trim');
+  }
+
+  _drawRecWaveformWithTrims() {
+    if (!this._recCanvas || !this._recWaveformData) return;
+    
+    const canvas = this._recCanvas;
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width;
+    const h = canvas.height;
+    
+    // Fond
+    ctx.fillStyle = '#071021';
+    ctx.fillRect(0, 0, w, h);
+    
+    // Dessiner la waveform complète en gris
+    const summary = this._recWaveformData;
+    ctx.strokeStyle = '#334155';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    const sy = h / 2;
+    for (let i = 0; i < summary.length; i++) {
+      const x = (i / summary.length) * w;
+      const y = sy - (summary[i] * (h / 2));
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    
+    // Dessiner la partie sélectionnée (entre les trim bars) en bleu
+    const startX = this._recTrimStart * w;
+    const endX = this._recTrimEnd * w;
+    const startIdx = Math.floor(summary.length * this._recTrimStart);
+    const endIdx = Math.ceil(summary.length * this._recTrimEnd);
+    const segment = summary.slice(startIdx, endIdx);
+    
+    if (segment.length > 0) {
+      ctx.strokeStyle = '#60a5fa';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (let i = 0; i < segment.length; i++) {
+        const x = startX + (i / segment.length) * (endX - startX);
+        const y = sy - (segment[i] * (h / 2));
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+      
+      // Remplir la zone sélectionnée
+      ctx.fillStyle = 'rgba(96,165,250,0.1)';
+      ctx.fillRect(startX, 0, endX - startX, h);
+    }
+    
+    // Dessiner les trim bars
+    ctx.strokeStyle = '#3b82f6';
+    ctx.lineWidth = 3;
+    
+    // Barre de gauche (start)
+    ctx.beginPath();
+    ctx.moveTo(startX, 0);
+    ctx.lineTo(startX, h);
+    ctx.stroke();
+    
+    // Barre de droite (end)
+    ctx.beginPath();
+    ctx.moveTo(endX, 0);
+    ctx.lineTo(endX, h);
+    ctx.stroke();
+    
+    // Afficher les pourcentages
+    ctx.fillStyle = '#e2e8f0';
+    ctx.font = '11px monospace';
+    ctx.fillText(`${Math.round(this._recTrimStart * 100)}%`, startX + 4, 14);
+    ctx.fillText(`${Math.round(this._recTrimEnd * 100)}%`, endX - 30, 14);
+  }
+  
+  _onRecCanvasMouseDown(e) {
+    if (!this._recWaveformData || !this._recCanvas) return;
+    
+    const rect = this._recCanvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const w = rect.width;
+    const relX = x / w;
+    
+    const startX = this._recTrimStart;
+    const endX = this._recTrimEnd;
+    const threshold = 10 / w; // 10px de tolérance
+    
+    if (Math.abs(relX - startX) < threshold) {
+      this._recTrimDragging = 'start';
+    } else if (Math.abs(relX - endX) < threshold) {
+      this._recTrimDragging = 'end';
+    }
+  }
+  
+  _onRecCanvasMouseMove(e) {
+    if (!this._recTrimDragging || !this._recCanvas) return;
+    
+    const rect = this._recCanvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const w = rect.width;
+    const relX = Math.max(0, Math.min(1, x / w));
+    
+    if (this._recTrimDragging === 'start') {
+      this._recTrimStart = Math.min(relX, this._recTrimEnd - 0.01);
+    } else if (this._recTrimDragging === 'end') {
+      this._recTrimEnd = Math.max(relX, this._recTrimStart + 0.01);
+    }
+    
+    this._drawRecWaveformWithTrims();
+  }
+  
+  _onRecCanvasMouseUp() {
+    this._recTrimDragging = null;
+  }
+
+  _hideRecResult() {
+    if (this._recResultPanel) {
+      this._recResultPanel.style.display = 'none';
+    }
+    if (this._recAudioPreview) {
+      this._recAudioPreview.src = '';
+    }
+    if (this._recTimer) {
+      this._recTimer.textContent = '00:00.0';
+    }
+    // Nettoyer la waveform
+    this._recWaveformData = null;
+    this._recTrimStart = 0;
+    this._recTrimEnd = 1;
+  }
+
+  _findNextEmptyPad() {
+    // Chercher le premier pad vide (sans buffer chargé)
+    for (let i = 0; i < 16; i++) {
+      if (!this.audioNode || !this.audioNode.pads || !this.audioNode.pads[i]) continue;
+      if (!this.audioNode.pads[i].buffer) {
+        return i;
+      }
+    }
+    return -1; // Aucun pad vide
+  }
+
   _createRecPreviewElement(blobUrl) {
-    if (!this._recPreview) return;
-    this._recPreview.innerHTML = '';
-    const a = document.createElement('a');
-    a.href = blobUrl;
-    a.textContent = 'Recorded sample';
-    a.draggable = true;
-    a.style.color = '#cbd5e1';
-    a.style.padding = '6px 8px';
-    a.style.border = '1px solid #334155';
-    a.style.borderRadius = '6px';
-    a.addEventListener('dragstart', (ev) => {
-      try { ev.dataTransfer.setData('text/plain', blobUrl); } catch (e) { console.warn('setData drag failed', e); }
-    });
-    this._recPreview.appendChild(a);
+    // Méthode obsolète - remplacée par _showRecResult
+    // Conservée pour compatibilité
+    this._showRecResult(blobUrl);
   }
 
   async _loadBlobUrlToPad(blobUrl, padIndex = 0) {
@@ -1461,6 +1910,79 @@ export default class SamplerElement extends HTMLElement {
       try { this._saveCurrentBank(); } catch (e) { /* ignore */ }
     } catch (e) {
       console.warn('loadBlobUrlToPad failed', e);
+    }
+  }
+
+  async _assignRecordingToSelectedPad() {
+    if (!this._recFullAudioBuffer) {
+      this._setStatus('✗ Aucun enregistrement disponible');
+      return;
+    }
+    
+    const padIndex = this._selectedPad;
+    try {
+      // Créer un buffer coupé avec uniquement la partie trimée
+      const originalBuffer = this._recFullAudioBuffer;
+      const trimStart = this._recTrimStart;
+      const trimEnd = this._recTrimEnd;
+      
+      const startSample = Math.floor(originalBuffer.length * trimStart);
+      const endSample = Math.ceil(originalBuffer.length * trimEnd);
+      const newLength = endSample - startSample;
+      
+      if (newLength <= 0) {
+        this._setStatus('✗ Sélection invalide');
+        return;
+      }
+      
+      // Créer un nouveau buffer avec uniquement la partie sélectionnée
+      const ctx = this.plugin.audioContext;
+      const trimmedBuffer = ctx.createBuffer(
+        originalBuffer.numberOfChannels,
+        newLength,
+        originalBuffer.sampleRate
+      );
+      
+      // Copier les données
+      for (let channel = 0; channel < originalBuffer.numberOfChannels; channel++) {
+        const originalData = originalBuffer.getChannelData(channel);
+        const trimmedData = trimmedBuffer.getChannelData(channel);
+        for (let i = 0; i < newLength; i++) {
+          trimmedData[i] = originalData[startSample + i];
+        }
+      }
+      
+      // Charger le buffer coupé dans le pad
+      this.audioNode.loadSample(padIndex, trimmedBuffer);
+      this._markLoaded(padIndex, true);
+      this._padFileNames[padIndex] = 'recording-trimmed';
+      this._updatePadFilename(padIndex);
+      this._waveforms[padIndex] = this._computeWaveformSummary(trimmedBuffer, 512);
+      this._drawSelectedWaveform(padIndex);
+      
+      // Réinitialiser les trim bars à 0-100% puisque le buffer est déjà coupé
+      if (this._trimLeft) this._trimLeft.value = 0;
+      if (this._trimRight) this._trimRight.value = 1;
+      if (this._trimLeftVal) this._trimLeftVal.textContent = '0%';
+      if (this._trimRightVal) this._trimRightVal.textContent = '100%';
+      
+      if (this.audioNode && typeof this.audioNode.setPadTrimStart === 'function') {
+        this.audioNode.setPadTrimStart(padIndex, 0);
+        this.audioNode.setPadTrimEnd(padIndex, 1);
+      } else if (this.audioNode && this.audioNode.pads && this.audioNode.pads[padIndex]) {
+        this.audioNode.pads[padIndex].trimStart = 0;
+        this.audioNode.pads[padIndex].trimEnd = 1;
+      }
+      
+      // Cacher le panel de résultat
+      this._hideRecResult();
+      
+      try { this._saveCurrentBank(); } catch (e) { /* ignore */ }
+      
+      this._setStatus(`✂️ Enregistrement coupé (${Math.round(trimStart * 100)}%-${Math.round(trimEnd * 100)}%) assigné au pad ${padIndex + 1}`);
+    } catch (e) {
+      console.error('assignRecordingToSelectedPad failed', e);
+      this._setStatus(`✗ Erreur assignation: ${e.message}`);
     }
   }
 
@@ -1976,10 +2498,11 @@ export default class SamplerElement extends HTMLElement {
     const ctx = this._waveCtx;
     const w = this._waveCanvas.width;
     const h = this._waveCanvas.height;
-    ctx.strokeStyle = '#60a5fa';
-    ctx.lineWidth = 1.2;
-    ctx.beginPath();
+    
     if (!summary) {
+      ctx.strokeStyle = '#60a5fa';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
       ctx.moveTo(0, h / 2);
       ctx.lineTo(w, h / 2);
       ctx.stroke();
@@ -1988,26 +2511,63 @@ export default class SamplerElement extends HTMLElement {
 
     const left = Number(this._trimLeft?.value || 0);
     const right = Number(this._trimRight?.value || 1);
-    const len = summary.length;
-    const startIdx = Math.floor(len * left);
-    const endIdx = Math.max(startIdx + 1, Math.floor(len * right));
-    const segment = summary.slice(startIdx, endIdx);
     const sy = h / 2;
-    ctx.moveTo(0, sy);
-    for (let i = 0; i < segment.length; i++) {
-      const x = (i / (segment.length - 1)) * w;
-      const y = sy - (segment[i] * (h / 2));
-      ctx.lineTo(x, y);
+    
+    // Dessiner la waveform complète en gris
+    ctx.strokeStyle = '#334155';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let i = 0; i < summary.length; i++) {
+      const x = (i / summary.length) * w;
+      const y = sy - (summary[i] * (h / 2));
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
     }
-    for (let i = segment.length - 1; i >= 0; i--) {
-      const x = (i / (segment.length - 1)) * w;
-      const y = sy + (segment[i] * (h / 2));
-      ctx.lineTo(x, y);
-    }
-    ctx.closePath();
-    ctx.fillStyle = 'rgba(96,165,250,0.18)';
-    ctx.fill();
     ctx.stroke();
+    
+    // Dessiner la partie sélectionnée en bleu
+    const startIdx = Math.floor(summary.length * left);
+    const endIdx = Math.max(startIdx + 1, Math.floor(summary.length * right));
+    const segment = summary.slice(startIdx, endIdx);
+    const startX = left * w;
+    const endX = right * w;
+    
+    if (segment.length > 0) {
+      ctx.strokeStyle = '#60a5fa';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (let i = 0; i < segment.length; i++) {
+        const x = startX + (i / segment.length) * (endX - startX);
+        const y = sy - (segment[i] * (h / 2));
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+      
+      // Remplir la zone sélectionnée
+      ctx.fillStyle = 'rgba(96,165,250,0.1)';
+      ctx.fillRect(startX, 0, endX - startX, h);
+    }
+    
+    // Dessiner les trim bars
+    ctx.strokeStyle = '#3b82f6';
+    ctx.lineWidth = 3;
+    
+    // Barre de gauche
+    ctx.beginPath();
+    ctx.moveTo(startX, 0);
+    ctx.lineTo(startX, h);
+    ctx.stroke();
+    
+    // Barre de droite
+    ctx.beginPath();
+    ctx.moveTo(endX, 0);
+    ctx.lineTo(endX, h);
+    ctx.stroke();
+    
+    // Afficher les pourcentages
+    ctx.fillStyle = '#e2e8f0';
+    ctx.font = '11px monospace';
+    ctx.fillText(`${Math.round(left * 100)}%`, startX + 4, 14);
+    ctx.fillText(`${Math.round(right * 100)}%`, endX - 30, 14);
   }
 
   _switchZone(zone) {
@@ -2125,8 +2685,115 @@ export default class SamplerElement extends HTMLElement {
   async _refreshPresetSelect() {
     const select = this.shadowRoot.getElementById('preset-select');
     if (!select || !this._presetMgr) return;
-    const list = await this._presetMgr.listPresets();
-    select.innerHTML = list.map(n => `<option value="${n}">${n}</option>`).join('');
+    
+    try {
+      const { factory, user } = await this._presetMgr.listPresetsByCategory();
+      
+      let html = '<option value="">-- Select Preset --</option>';
+      
+      // Factory presets group
+      if (factory.length > 0) {
+        html += '<optgroup label="🏭 Factory Presets">';
+        factory.forEach(name => {
+          // Afficher le nom sans le préfixe [Factory]
+          const displayName = name.replace(/^\[Factory\]\s*/, '');
+          html += `<option value="${name}">${displayName}</option>`;
+        });
+        html += '</optgroup>';
+      }
+      
+      // User presets group
+      if (user.length > 0) {
+        html += '<optgroup label="👤 User Presets">';
+        user.forEach(name => {
+          html += `<option value="${name}">${name}</option>`;
+        });
+        html += '</optgroup>';
+      }
+      
+      select.innerHTML = html;
+    } catch (e) {
+      console.warn('Error refreshing preset list:', e);
+      this._setStatus('⚠️ Erreur chargement presets');
+    }
+  }
+
+  /**
+   * Initialiser les presets factory par défaut
+   * Appelée une seule fois au premier chargement
+   * @private
+   */
+  async _initializeFactoryPresets() {
+    if (!this._presetMgr) return;
+    
+    // Vérifier si les presets factory existent déjà
+    try {
+      const existing = await this._presetMgr.listPresets();
+      const hasFactory = existing.some(name => name.startsWith('[Factory]'));
+      if (hasFactory) return; // Déjà initialisés
+    } catch (e) {
+      console.warn('Could not check existing factory presets:', e);
+    }
+
+    // Créer les presets factory par défaut
+    const factoryPresets = [
+      {
+        name: 'Empty',
+        state: {
+          masterVolume: 1.0,
+          pads: Array(16).fill(null).map(() => ({
+            volume: 1.0,
+            pan: 0,
+            pitch: 0,
+            tone: 0,
+            trimStart: 0,
+            trimEnd: 1,
+            reverse: false
+          }))
+        },
+        samples: []
+      },
+      {
+        name: 'Drums Kit',
+        state: {
+          masterVolume: 0.8,
+          pads: [
+            { volume: 1.0, pan: 0, pitch: 0, tone: 0.2, trimStart: 0, trimEnd: 1, reverse: false },  // Kick
+            { volume: 0.9, pan: 0, pitch: 0, tone: 0.3, trimStart: 0, trimEnd: 1, reverse: false },  // Snare
+            { volume: 0.7, pan: -0.3, pitch: 2, tone: 0.5, trimStart: 0, trimEnd: 1, reverse: false }, // Hi-hat
+            { volume: 0.7, pan: 0.3, pitch: 2, tone: 0.5, trimStart: 0, trimEnd: 1, reverse: false },  // Hi-hat open
+            ...Array(12).fill(null).map(() => ({ volume: 1.0, pan: 0, pitch: 0, tone: 0, trimStart: 0, trimEnd: 1, reverse: false }))
+          ]
+        },
+        samples: []
+      },
+      {
+        name: 'Bass Heavy',
+        state: {
+          masterVolume: 0.9,
+          pads: Array(16).fill(null).map((_, i) => ({
+            volume: 1.0,
+            pan: (i % 4 - 1.5) / 2, // Spread pan
+            pitch: -12 + (i % 4) * 2, // Descending pitch
+            tone: -0.5, // Bas de spectre
+            trimStart: 0,
+            trimEnd: 1,
+            reverse: false
+          }))
+        },
+        samples: []
+      }
+    ];
+
+    // Sauvegarder chaque preset factory
+    for (const preset of factoryPresets) {
+      try {
+        await this._presetMgr.saveFactoryPreset(preset.name, preset.state, preset.samples);
+        console.log(`✓ Factory preset created: ${preset.name}`);
+      } catch (e) {
+        console.warn(`Failed to create factory preset ${preset.name}:`, e);
+      }
+    }
   }
 
   /**
@@ -2147,6 +2814,181 @@ export default class SamplerElement extends HTMLElement {
       }
     } catch (e) {
       console.warn('setStatus failed', e);
+    }
+  }
+
+  // Méthodes pour interactions de trim sur le canvas principal
+  _onMainCanvasMouseDown(e) {
+    if (!this._waveforms[this._selectedPad] || !this._waveCanvas) return;
+    
+    const rect = this._waveCanvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const w = rect.width;
+    const relX = x / w;
+    
+    const startX = parseFloat(this._trimLeft?.value || 0);
+    const endX = parseFloat(this._trimRight?.value || 1);
+    const threshold = 10 / w; // 10px de tolérance
+    
+    if (Math.abs(relX - startX) < threshold) {
+      this._mainTrimDragging = 'start';
+    } else if (Math.abs(relX - endX) < threshold) {
+      this._mainTrimDragging = 'end';
+    }
+  }
+  
+  _onMainCanvasMouseMove(e) {
+    if (!this._mainTrimDragging || !this._waveCanvas) return;
+    
+    const rect = this._waveCanvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const w = rect.width;
+    const relX = Math.max(0, Math.min(1, x / w));
+    
+    if (this._mainTrimDragging === 'start') {
+      const newVal = Math.min(relX, parseFloat(this._trimRight?.value || 1) - 0.01);
+      if (this._trimLeft) this._trimLeft.value = newVal;
+      if (this._trimLeftVal) this._trimLeftVal.textContent = `${Math.round(newVal * 100)}%`;
+    } else if (this._mainTrimDragging === 'end') {
+      const newVal = Math.max(relX, parseFloat(this._trimLeft?.value || 0) + 0.01);
+      if (this._trimRight) this._trimRight.value = newVal;
+      if (this._trimRightVal) this._trimRightVal.textContent = `${Math.round(newVal * 100)}%`;
+    }
+    
+    this._drawSelectedWaveform(this._selectedPad);
+  }
+  
+  _onMainCanvasMouseUp() {
+    if (this._mainTrimDragging) {
+      // Appliquer les changements au pad
+      this._onTrimChange();
+      this._mainTrimDragging = null;
+    }
+  }
+
+  // Méthode pour couper l'audio et appliquer le trim
+  async _applyTrimToCurrentPad() {
+    const padIndex = this._selectedPad;
+    const padObj = this.audioNode?.pads?.[padIndex];
+    if (!padObj || !padObj.originalBuffer) {
+      this._setStatus('✗ Aucun sample chargé sur ce pad');
+      return;
+    }
+
+    try {
+      const originalBuffer = padObj.originalBuffer;
+      const trimStart = parseFloat(this._trimLeft?.value || 0);
+      const trimEnd = parseFloat(this._trimRight?.value || 1);
+      
+      // Calculer les échantillons
+      const startSample = Math.floor(originalBuffer.length * trimStart);
+      const endSample = Math.ceil(originalBuffer.length * trimEnd);
+      const newLength = endSample - startSample;
+      
+      if (newLength <= 0) {
+        this._setStatus('✗ Sélection invalide');
+        return;
+      }
+      
+      // Créer un nouveau buffer avec uniquement la partie sélectionnée
+      const ctx = this.plugin.audioContext;
+      const trimmedBuffer = ctx.createBuffer(
+        originalBuffer.numberOfChannels,
+        newLength,
+        originalBuffer.sampleRate
+      );
+      
+      // Copier les données
+      for (let channel = 0; channel < originalBuffer.numberOfChannels; channel++) {
+        const originalData = originalBuffer.getChannelData(channel);
+        const trimmedData = trimmedBuffer.getChannelData(channel);
+        for (let i = 0; i < newLength; i++) {
+          trimmedData[i] = originalData[startSample + i];
+        }
+      }
+      
+      // Charger le nouveau buffer coupé
+      this.audioNode.loadSample(padIndex, trimmedBuffer);
+      this._markLoaded(padIndex, true);
+      
+      // Réinitialiser les trim à 0-100% puisque le buffer est maintenant coupé
+      if (this._trimLeft) this._trimLeft.value = 0;
+      if (this._trimRight) this._trimRight.value = 1;
+      if (this._trimLeftVal) this._trimLeftVal.textContent = '0%';
+      if (this._trimRightVal) this._trimRightVal.textContent = '100%';
+      
+      if (typeof this.audioNode.setPadTrimStart === 'function') {
+        this.audioNode.setPadTrimStart(padIndex, 0);
+        this.audioNode.setPadTrimEnd(padIndex, 1);
+      }
+      
+      // Mettre à jour la waveform
+      this._waveforms[padIndex] = this._computeWaveformSummary(trimmedBuffer, 512);
+      this._drawSelectedWaveform(padIndex);
+      
+      this._setStatus(`✂️ Sample coupé: ${Math.round(trimStart * 100)}% à ${Math.round(trimEnd * 100)}%`);
+      try { this._saveCurrentBank(); } catch (e) { /* ignore */ }
+    } catch (e) {
+      console.error('applyTrimToCurrentPad failed', e);
+      this._setStatus(`✗ Erreur: ${e.message}`);
+    }
+  }
+
+  // Méthodes pour import/export d'état
+  _exportState() {
+    try {
+      const state = this.audioNode?.getState?.();
+      if (!state) {
+        this._setStatus('✗ Impossible d\'exporter l\'état');
+        return;
+      }
+      const json = JSON.stringify(state, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `sampler-state-${Date.now()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      this._setStatus('📤 État exporté');
+    } catch (e) {
+      console.error('exportState failed', e);
+      this._setStatus(`✗ Erreur export: ${e.message}`);
+    }
+  }
+
+  async _importState(file) {
+    try {
+      const text = await file.text();
+      const state = JSON.parse(text);
+      this.audioNode?.setState?.(state);
+      this._setStatus('📥 État importé');
+      // Recharger l'UI
+      window.location.reload();
+    } catch (e) {
+      console.error('importState failed', e);
+      this._setStatus(`✗ Erreur import: ${e.message}`);
+    }
+  }
+
+  _logState() {
+    try {
+      const state = this.audioNode?.getState?.();
+      if (!state) {
+        this._setStatus('✗ Impossible de récupérer l\'état');
+        console.warn('No state available');
+        return;
+      }
+      console.group('🔍 Sampler State');
+      console.log('Full state:', state);
+      console.log('Pads:', state.pads);
+      console.log('Master:', state.master);
+      console.log('Waveforms:', state.waveforms ? `${state.waveforms.length} waveforms` : 'none');
+      console.groupEnd();
+      this._setStatus('🔍 État affiché dans la console');
+    } catch (e) {
+      console.error('logState failed', e);
+      this._setStatus(`✗ Erreur: ${e.message}`);
     }
   }
 }
